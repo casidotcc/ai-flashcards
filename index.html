@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI & Dev Glossary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f0f0;
+    --text: #1a1a1a;
+    --text-muted: #888;
+    --radius: 8px;
+  }
+
+  body {
+    font-family: "Geist Mono", "Courier New", monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* ── Back button (plain text, no decoration) ─────── */
+  .btn-back {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: 0;
+    flex-shrink: 0;
+  }
+  .btn-back:hover { color: var(--text); }
+
+  /* ── Landing ─────────────────────────────────── */
+  #landing {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin-top: 120px;
+    padding: 0 40px 80px;
+    width: 100%;
+    max-width: 680px;
+  }
+  .landing-title {
+    font-size: 24px;
+    font-weight: 500;
+    text-align: center;
+  }
+  .landing-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: -12px;
+    text-align: center;
+  }
+  .landing-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+  .mode-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: border-color 0.18s, transform 0.18s;
+  }
+  .mode-card:hover { border-color: #F55110; transform: translateY(-2px); }
+  .mode-name { font-size: 12px; font-weight: 500; }
+  .mode-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── Progress bar ────────────────────────────── */
+  .progress-wrap {
+    width: 100%;
+    max-width: 400px;
+    padding: 28px 0 0;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .progress-track {
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #555;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Card stage ──────────────────────────────── */
+  .stage {
+    perspective: 800px;
+    perspective-origin: 50% 42%;
+    position: relative;
+    margin-top: 60px;
+    width: 400px;
+    height: 300px;
+    cursor: pointer;
+  }
+
+  /* ── Dynamic card stack behind main card ──────── */
+  #stackCards { position: absolute; inset: 0; pointer-events: none; }
+  .stack-card {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: #fff;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+    transition: transform 0.35s ease, opacity 0.35s ease;
+  }
+  .stack-card[data-pos="1"] { transform: translateY(10px) scale(0.96); opacity: 0.7; }
+  .stack-card[data-pos="2"] { transform: translateY(20px) scale(0.92); opacity: 0.5; }
+  .stack-card[data-pos="3"] { transform: translateY(30px) scale(0.88); opacity: 0.3; }
+  .stack-card[data-pos="4"] { transform: translateY(40px) scale(0.84); opacity: 0.15; }
+
+  /* Shadow lives outside the 3D context */
+  .card-shadow {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 20px;
+    bottom: -20px;
+    border-radius: var(--radius);
+    background: transparent;
+    box-shadow: 0 28px 55px rgba(0,0,0,0.18);
+    pointer-events: none;
+    transition: box-shadow 0.18s, transform 0.05s;
+  }
+
+  /* card-outer handles the smooth hover scale only */
+  .card-outer {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    transition: transform 0.4s ease;
+  }
+  .card-outer.lifted { transform: scale(1.02); }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: var(--radius);
+  }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: linear-gradient(160deg, #ffffff 0%, #f9f8fc 100%);
+    pointer-events: none;
+  }
+  .card-back {
+    transform: scaleX(-1);
+    opacity: 0;
+    background: linear-gradient(160deg, #ffffff 0%, #f8faf9 100%);
+  }
+
+  .card-face::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: linear-gradient(
+      140deg,
+      rgba(255,255,255,0.75) 0%,
+      rgba(255,255,255,0.1) 40%,
+      rgba(0,0,0,0.02) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+  .card-face::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 2;
+    transition: background 0.05s;
+  }
+
+  /* Front */
+  .front-inner {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    text-align: center;
+    gap: 14px;
+  }
+  .badge {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #ebebeb;
+    color: #666;
+  }
+  .badge-ai, .badge-git, .badge-code, .badge-infra, .badge-cc { /* same style for all */ }
+
+  .term {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    line-height: 1.1;
+  }
+  .term.term-sm { font-size: 24px; }
+  .term.term-xs { font-size: 24px; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Back */
+  .back-inner {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 26px 32px;
+    gap: 8px;
+  }
+  .full-name {
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .definition {
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--text);
+    font-weight: 400;
+    flex: 1;
+  }
+  .example {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    border-left: 2px solid #e0e0e0;
+    padding-left: 10px;
+  }
+  .back-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .back-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter 0.15s;
+    pointer-events: auto;
+  }
+  .back-actions button:hover { filter: brightness(0.94); }
+  /* Green / red restored on action buttons only */
+  .btn-got  { background: #dcfce7; color: #16a34a; }
+  .btn-miss { background: #fee2e2; color: #dc2626; }
+
+  /* ── Results ─────────────────────────────────── */
+  #results {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin-top: 80px;
+    width: 100%;
+    max-width: 400px;
+    padding: 0 0 60px;
+  }
+  .score-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 40px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  }
+  .score-num {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .score-pct {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .score-sub {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .breakdown {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    width: 100%;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  }
+  .breakdown h3 {
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .bar-row { display: flex; flex-direction: column; gap: 12px; }
+  .bar-item { display: flex; flex-direction: column; gap: 5px; }
+  .bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .bar-track {
+    height: 6px;
+    background: #f0f0f0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #555;
+    transition: width 0.6s ease;
+  }
+  .results-btns {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+  .results-btns button {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  .results-btns button:hover { filter: brightness(0.94); }
+  .btn-retry   { background: #ebebeb; color: #555; }
+  .btn-restart { background: var(--text); color: #fff; }
+  .btn-retry:disabled { opacity: 0.35; cursor: default; filter: none; }
+
+  /* ── Dictionary view ─────────────────────────── */
+  #dictionary {
+    flex-direction: column;
+    width: 100%;
+    max-width: 680px;
+    padding: 80px 40px 80px;
+    gap: 0;
+  }
+  .dict-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .dict-title { font-size: 12px; font-weight: 500; }
+  .dict-count { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .dict-controls { margin-bottom: 20px; }
+  .dict-search {
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    background: #fff;
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .dict-search:focus { border-color: #aaa; }
+  .dict-sort-toggle {
+    display: flex;
+    gap: 3px;
+    background: #e8e8e8;
+    border-radius: 8px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .dict-sort-btn {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    font-size: 12px;
+    font-weight: 400;
+    color: #888;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+  .dict-sort-btn.active { background: #fff; color: #222; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .dict-list { display: flex; flex-direction: column; }
+  .dict-cat-header {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #aaa;
+    padding: 24px 0 8px;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .dict-item {
+    padding: 18px 0;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dict-item-term { font-size: 12px; font-weight: 500; }
+  .dict-item-def { font-size: 12px; line-height: 1.65; color: #555; font-weight: 400; }
+  .dict-item-ex {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.55;
+    border-left: 2px solid #e0e0e0;
+    padding-left: 10px;
+  }
+  .dict-empty {
+    padding: 60px 0;
+    text-align: center;
+    color: #aaa;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Landing -->
+<div id="landing">
+  <div class="landing-title">AI & Dev Glossary</div>
+  <div class="landing-sub">78 terms across AI, Git, code, and Claude.</div>
+  <div class="landing-cards">
+    <div class="mode-card" id="pickStudy">
+      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <polygon points="24,6 42,16 42,32 24,42 6,32 6,16" stroke="#888" stroke-width="1.5"/>
+        <line x1="24" y1="6" x2="24" y2="42" stroke="#888" stroke-width="1.5"/>
+        <line x1="6" y1="16" x2="42" y2="16" stroke="#888" stroke-width="1.5"/>
+        <line x1="6" y1="32" x2="42" y2="32" stroke="#888" stroke-width="1.5"/>
+      </svg>
+      <div class="mode-name">Study</div>
+      <div class="mode-desc">Flip through cards, mark what you know.</div>
+    </div>
+    <div class="mode-card" id="pickBrowse">
+      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="17" y="8" width="22" height="28" rx="2" stroke="#888" stroke-width="1.5" fill="#f0f0f0"/>
+        <rect x="12" y="12" width="22" height="28" rx="2" stroke="#888" stroke-width="1.5" fill="#f0f0f0"/>
+        <rect x="7" y="16" width="22" height="28" rx="2" stroke="#888" stroke-width="1.5" fill="#f0f0f0"/>
+        <line x1="12" y1="23" x2="24" y2="23" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="12" y1="27" x2="24" y2="27" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="12" y1="31" x2="20" y2="31" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="mode-name">Browse</div>
+      <div class="mode-desc">Search and read all 78 terms.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-wrap" id="progressWrap" style="display:none">
+  <div class="progress-meta">
+    <button class="btn-back js-back" id="btnBack">&#8592; Back</button>
+    <span id="progressLabel">Card 1</span>
+    <span id="progressScore"></span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- Card -->
+<div class="stage" id="stage" style="display:none">
+  <div id="stackCards"></div>
+  <div class="card-shadow" id="cardShadow"></div>
+  <div class="card-outer" id="cardOuter">
+  <div class="card" id="card">
+    <div class="card-face card-front">
+      <div class="front-inner">
+        <span class="badge" id="frontBadge"></span>
+        <div class="term" id="frontTerm"></div>
+        <div class="hint">click to flip</div>
+      </div>
+    </div>
+    <div class="card-face card-back">
+      <div class="back-inner">
+        <div class="full-name" id="backFullName"></div>
+        <div class="definition" id="backDef"></div>
+        <div class="example" id="backEx"></div>
+        <div class="back-actions">
+          <button class="btn-got"  id="btnGot">&#10003; Got it</button>
+          <button class="btn-miss" id="btnMiss">&#10007; Still learning</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /card-outer -->
+</div>
+
+<!-- Results -->
+<div id="results">
+  <button class="btn-back js-back" style="align-self:flex-start">&#8592; Back</button>
+  <div class="score-card">
+    <div class="score-num" id="scoreNum">0</div>
+    <div class="score-pct" id="scorePct">0%</div>
+    <div class="score-sub" id="scoreSub"></div>
+  </div>
+  <div class="breakdown">
+    <h3>By category</h3>
+    <div class="bar-row" id="barRow"></div>
+  </div>
+  <div class="results-btns">
+    <button class="btn-retry"   id="btnRetry">Retry missed</button>
+    <button class="btn-restart" id="btnRestart">Start over</button>
+  </div>
+</div>
+
+<!-- Dictionary -->
+<div id="dictionary" style="display:none">
+  <button class="btn-back js-back" style="margin-bottom:20px;align-self:flex-start">&#8592; Back</button>
+  <div class="dict-header-row">
+    <div>
+      <div class="dict-title">Glossary</div>
+      <div class="dict-count" id="dictCount"></div>
+    </div>
+    <div class="dict-sort-toggle">
+      <button class="dict-sort-btn active" id="sortCat">By category</button>
+      <button class="dict-sort-btn" id="sortAZ">A–Z</button>
+    </div>
+  </div>
+  <div class="dict-controls">
+    <input type="text" id="dictSearch" class="dict-search" placeholder="Search terms or definitions…">
+  </div>
+  <div id="dictList" class="dict-list"></div>
+</div>
+
+<script>
+// ── Card data ──────────────────────────────────────────────────────────────
+const CARDS = [
+
+  // ── AI & Claude (20) ─────────────────────────────────────────────────────
+  { cat:"AI & Claude", term:"LLM", full:"Large Language Model",
+    def:"An AI that got smart by reading billions of web pages, books, and articles. It understands your words and writes back naturally — like a very well-read assistant.",
+    ex:"Claude, ChatGPT, and Gemini are all LLMs." },
+
+  { cat:"AI & Claude", term:"Prompt", full:"Prompt",
+    def:"Whatever you type into the AI chat box. Your question, your request, your instruction — all of that is a prompt.",
+    ex:"\"Rewrite this email so it sounds friendlier\" is a prompt." },
+
+  { cat:"AI & Claude", term:"System Prompt", full:"System Prompt",
+    def:"Hidden instructions given to an AI before your conversation starts. They shape how it behaves — but you never see them.",
+    ex:"A customer service bot might secretly be told: \"Only discuss our products. Always be polite.\"" },
+
+  { cat:"AI & Claude", term:"Token", full:"Token",
+    def:"AI doesn't read word-by-word — it reads in small chunks called tokens. One token is roughly ¾ of a word. AIs can only handle so many at once.",
+    ex:"The word \"flashcard\" = about 2 tokens. Run out of tokens and the AI starts forgetting earlier parts of the chat." },
+
+  { cat:"AI & Claude", term:"Context Window", full:"Context Window",
+    def:"How much of the conversation an AI can hold in its head at once. Think of it like a whiteboard — when it's full, old stuff gets erased to make room.",
+    ex:"In a very long chat, the AI might \"forget\" what you said an hour ago because the whiteboard is full." },
+
+  { cat:"AI & Claude", term:"Artifact", full:"Artifact",
+    def:"When Claude produces something big and self-contained — like a full webpage or a document — it shows it in its own preview pane called an artifact.",
+    ex:"Ask Claude to build a landing page and it appears as an artifact you can preview and copy right away." },
+
+  { cat:"AI & Claude", term:"Hallucination", full:"Hallucination",
+    def:"When an AI makes something up and confidently presents it as true. It doesn't know it's wrong — it just sounds certain.",
+    ex:"An AI might cite a study or quote a book that doesn't actually exist." },
+
+  { cat:"AI & Claude", term:"RAG", full:"Retrieval-Augmented Generation",
+    def:"Instead of answering only from memory, the AI first searches through your documents, then uses what it finds to give a more accurate answer.",
+    ex:"A help bot that searches your company docs before replying — instead of guessing — uses RAG." },
+
+  { cat:"AI & Claude", term:"Fine-tuning", full:"Fine-tuning",
+    def:"Taking a general AI and giving it extra training on a specific topic so it becomes an expert in that area.",
+    ex:"Training GPT on thousands of legal documents to make it much better at drafting contracts." },
+
+  { cat:"AI & Claude", term:"Temperature", full:"Temperature",
+    def:"A dial that controls how predictable or surprising an AI's answers are. Low = safe and reliable. High = creative and unpredictable.",
+    ex:"Use low temperature when writing code (you want it correct), high when brainstorming product names." },
+
+  { cat:"AI & Claude", term:"MCP", full:"Model Context Protocol",
+    def:"A plug-in standard that lets Claude connect to outside tools — like your files, a calendar, or a database — instead of only knowing what you type.",
+    ex:"An MCP connection lets Claude read folders on your computer or call a third-party API." },
+
+  { cat:"AI & Claude", term:"Agent", full:"Agent / Agentic AI",
+    def:"An AI that doesn't just answer — it actually does things. It can open files, search the web, write and run code, and take actions on your behalf.",
+    ex:"An agent that searches flights, compares prices, and drafts a travel plan — all without you clicking anything." },
+
+  { cat:"AI & Claude", term:"Vibe Coding", full:"Vibe Coding",
+    def:"Writing software by describing what you want in plain English, and letting the AI write the actual code. No programming background needed.",
+    ex:"\"Make the button red when you hover over it\" — and the AI writes the CSS for you." },
+
+  { cat:"AI & Claude", term:"Guardrails", full:"Guardrails",
+    def:"Built-in safety limits that stop an AI from saying harmful, dangerous, or off-topic things — even if you ask it to.",
+    ex:"A guardrail might prevent an AI from providing specific medical or legal advice." },
+
+  { cat:"AI & Claude", term:"Reasoning", full:"Reasoning",
+    def:"When an AI thinks through a problem step by step — like working out loud on a whiteboard — before giving its final answer. Slower, but more accurate.",
+    ex:"Claude reasoning through a logic puzzle before answering, rather than guessing immediately." },
+
+  { cat:"AI & Claude", term:"Skill", full:"Skill (Claude Code)",
+    def:"A saved set of instructions that tells Claude Code exactly how to do a specific task — like a shortcut or a recipe it can follow every time.",
+    ex:"A /commit skill tells Claude to always format git messages a specific way you defined." },
+
+  { cat:"AI & Claude", term:"Multi-turn", full:"Multi-turn Conversation",
+    def:"A back-and-forth chat with an AI where it remembers what was said before and builds on it — not a one-shot question and answer.",
+    ex:"Saying \"make it shorter\" works because the AI still remembers the long text it wrote two messages ago." },
+
+  { cat:"AI & Claude", term:"Memory", full:"Memory",
+    def:"The ability of an AI to remember things between separate conversations — not just within one session.",
+    ex:"Claude remembering your preferred coding style and communication tone, even in a brand new chat next week." },
+
+  { cat:"AI & Claude", term:"Inference", full:"Inference",
+    def:"The moment an AI actually uses what it learned to produce an answer. Every time you hit send and the AI responds, inference is happening.",
+    ex:"Inference is the \"thinking\" step — it's when the model generates your response in real time." },
+
+  { cat:"AI & Claude", term:"Embedding", full:"Embedding",
+    def:"A way to turn words, sentences, or images into lists of numbers that an AI can compare for meaning — so it knows \"dog\" and \"puppy\" are similar.",
+    ex:"Search engines use embeddings to show results that match what you meant, not just the exact words you typed." },
+
+  // ── Git & GitHub (10) ────────────────────────────────────────────────────
+  { cat:"Git & GitHub", term:"Repository", full:"Repository (Repo)",
+    def:"A project folder that Git watches. It stores all your files plus a full history of every single change ever made.",
+    ex:"Your entire design system — every file, every past version — can live in one repo on GitHub." },
+
+  { cat:"Git & GitHub", term:"Branch", full:"Branch",
+    def:"A copy of your project you can experiment on without touching the original. When you're happy, merge it back.",
+    ex:"Make a \"dark-mode\" branch to try things freely, without risking breaking the live version." },
+
+  { cat:"Git & GitHub", term:"Commit", full:"Commit",
+    def:"Saving your work with a label describing what changed. Like pressing a checkpoint in a video game — you can always rewind to it.",
+    ex:"\"Add hero section\" is a commit. You can jump back to this exact moment anytime." },
+
+  { cat:"Git & GitHub", term:"Merge", full:"Merge",
+    def:"Taking the work from one branch and folding it into another. How experiments become the official version.",
+    ex:"Once dark mode is tested and approved, you merge that branch into main so everyone gets it." },
+
+  { cat:"Git & GitHub", term:"PR", full:"Pull Request",
+    def:"A formal request to add your changes to the main codebase. Teammates review and approve it first — like showing your work before it goes live.",
+    ex:"You open a PR so a developer can check your CSS changes before they get merged." },
+
+  { cat:"Git & GitHub", term:"Fork", full:"Fork",
+    def:"Making your own personal copy of someone else's project so you can modify it freely without affecting their original.",
+    ex:"Fork an open-source icon library to add your own custom icons to it." },
+
+  { cat:"Git & GitHub", term:"GitHub", full:"GitHub",
+    def:"A website where developers store, share, and collaborate on code. Like Google Drive for code, but with full version history and review tools.",
+    ex:"Nearly every open-source project — React, Tailwind, VS Code — lives on GitHub." },
+
+  { cat:"Git & GitHub", term:"Push / Pull", full:"Push and Pull",
+    def:"Push = upload your local changes to GitHub. Pull = download the latest changes from GitHub to your computer.",
+    ex:"You commit your changes locally, then push so teammates can see what you've done." },
+
+  { cat:"Git & GitHub", term:"Clone", full:"Clone",
+    def:"Downloading a full copy of a GitHub project to your own computer so you can open it, run it, and start making changes.",
+    ex:"Clone a project to run it locally before you start contributing." },
+
+  { cat:"Git & GitHub", term:"Rebase", full:"Rebase",
+    def:"Moving your commits on top of another branch's latest work — like cutting out your changes and pasting them onto a fresh starting point. Creates cleaner history.",
+    ex:"Rebase before merging so the project history looks like one clean straight line instead of tangled branches." },
+
+  // ── Code & Dev (16) ──────────────────────────────────────────────────────
+  { cat:"Code & Dev", term:"API", full:"Application Programming Interface",
+    def:"A messenger between two apps. You ask it something in a specific format, it goes and fetches the answer, and brings it back.",
+    ex:"When a weather app shows today's temperature, it asked a weather API for that number." },
+
+  { cat:"Code & Dev", term:"Endpoint", full:"Endpoint",
+    def:"A specific address in an API where you go to ask for one particular thing. Each endpoint does one job.",
+    ex:"\"/api/users\" returns a list of users. \"/api/products\" returns products. Each is a separate endpoint." },
+
+  { cat:"Code & Dev", term:"JSON", full:"JavaScript Object Notation",
+    def:"The most common way apps pass data to each other. It looks like a labeled list written in curly braces — easy for both humans and computers to read.",
+    ex:"{\"name\": \"Alex\", \"role\": \"designer\"} — that's JSON. Basically a very structured shopping list." },
+
+  { cat:"Code & Dev", term:"Frontend", full:"Frontend",
+    def:"Everything you see and click on — buttons, layouts, colors, animations. The visual layer users interact with.",
+    ex:"The nav menu, the hover animation, the form that slides in — all of that is frontend." },
+
+  { cat:"Code & Dev", term:"Backend", full:"Backend",
+    def:"The invisible engine that powers everything. It stores data, handles logins, and sends the right information to the frontend.",
+    ex:"When you log in, the backend is what checks if your password is correct and lets you in." },
+
+  { cat:"Code & Dev", term:"CSS", full:"Cascading Style Sheets",
+    def:"The language that makes web pages look good. It controls colors, fonts, sizes, spacing, and animations. Without it, every webpage is just black text on white.",
+    ex:"CSS is the design layer of the web. It's what turns plain HTML into something that looks designed." },
+
+  { cat:"Code & Dev", term:"Component", full:"Component",
+    def:"A reusable chunk of UI — a button, a card, a modal. Build it once with the right design, then reuse it everywhere.",
+    ex:"A button component means every button in the app is consistent — change it once and it updates everywhere." },
+
+  { cat:"Code & Dev", term:"Framework", full:"Framework",
+    def:"A ready-made toolkit for building apps. Instead of writing everything from zero, a framework gives you structure, conventions, and common tools.",
+    ex:"React is a JavaScript framework. Tailwind is a CSS framework. Both save you from reinventing the wheel." },
+
+  { cat:"Code & Dev", term:"Package / npm", full:"Package / npm",
+    def:"A package is a bundle of code someone else wrote that you can drop into your project. npm is the tool that installs them. One command and it's there.",
+    ex:"Need a date picker or a chart? Install a package instead of building one from scratch." },
+
+  { cat:"Code & Dev", term:"Bug", full:"Bug",
+    def:"When the code does something different from what it was supposed to. Could be a visual glitch, a broken feature, or a full crash.",
+    ex:"A button that works perfectly on desktop but disappears on mobile is a bug." },
+
+  { cat:"Code & Dev", term:"Refactoring", full:"Refactoring",
+    def:"Cleaning up existing code to make it easier to read and maintain — without changing what the app does for the user.",
+    ex:"Renaming confusing variables, removing copy-paste repetition, reorganizing files. The app looks the same, but the code is tidier." },
+
+  { cat:"Code & Dev", term:"Markdown", full:"Markdown",
+    def:"A simple formatting shorthand. Add symbols like `**` for bold, `#` for headings, or `-` for lists — and they become real formatting when rendered.",
+    ex:"README files on GitHub are written in Markdown. This very definition would look great in it." },
+
+  { cat:"Code & Dev", term:"IDE", full:"Integrated Development Environment",
+    def:"The app developers write code in. Think of it like Figma, but for code — it shows files, highlights errors, and helps you write faster.",
+    ex:"VS Code is the most popular IDE. It's free and has thousands of extensions for every language." },
+
+  { cat:"Code & Dev", term:"Webhook", full:"Webhook",
+    def:"A way for one app to automatically tap another app on the shoulder when something happens — no one needs to check or ask.",
+    ex:"When a PR is merged on GitHub, a webhook can instantly tell Slack to post \"New deploy incoming!\"" },
+
+  { cat:"Code & Dev", term:"HTTP Status", full:"HTTP Status Code",
+    def:"A number a server sends back to tell you if your request worked. You've probably seen 404 — that means \"page not found.\"",
+    ex:"200 = success. 404 = not found. 500 = server crashed. Developers check these when debugging." },
+
+  { cat:"Code & Dev", term:"Async", full:"Asynchronous Code",
+    def:"Code that runs in the background without freezing everything else. You kick it off, the app keeps working, and it comes back when it's done.",
+    ex:"Fetching data from an API is async — the page stays usable while waiting for the server to respond." },
+
+  // ── Infra & Process (12) ─────────────────────────────────────────────────
+  { cat:"Infra & Process", term:"Cache", full:"Cache",
+    def:"A saved copy of data so it doesn't have to be fetched or calculated again. Makes things load much faster.",
+    ex:"Your browser saves images from sites you visit — so next time, they load instantly instead of downloading again." },
+
+  { cat:"Infra & Process", term:"Batch", full:"Batch Processing",
+    def:"Doing a big group of the same task all at once, rather than one at a time as things come in.",
+    ex:"Sending 500 welcome emails at midnight in one go — instead of one every time a new person signs up." },
+
+  { cat:"Infra & Process", term:"CLI", full:"Terminal / Command Line Interface",
+    def:"Controlling your computer by typing commands instead of clicking buttons. Faster and more powerful — once you know the commands.",
+    ex:"Instead of navigating menus, you type `git push` and your code is uploaded in one second." },
+
+  { cat:"Infra & Process", term:"Deployment", full:"Deployment",
+    def:"Putting your code onto a live server so real people on the internet can actually use it.",
+    ex:"When you \"ship\" a feature, you're deploying it — it goes from your laptop to the world." },
+
+  { cat:"Infra & Process", term:"CI/CD", full:"Continuous Integration / Continuous Deployment",
+    def:"Automated robots that test your code and push it live every time a change is saved — no manual steps needed.",
+    ex:"You push code, CI/CD runs all your tests, and if they pass, it deploys to production on its own." },
+
+  { cat:"Infra & Process", term:"Docker", full:"Docker",
+    def:"A box that contains your app and everything it needs to run — guaranteed to work identically on any computer.",
+    ex:"\"Works on my machine\" is a famous developer problem. Docker solves it — it runs the same everywhere." },
+
+  { cat:"Infra & Process", term:"Env Variable", full:"Environment Variable",
+    def:"A secret setting your code reads from the computer it's running on, not from the code itself. Keeps sensitive info out of your files.",
+    ex:"Your API key lives in an env variable — so even if someone reads your code, they don't see the secret." },
+
+  { cat:"Infra & Process", term:"Log", full:"Log",
+    def:"A running record of everything your app has been doing — every action, event, and error — with timestamps.",
+    ex:"When something breaks at 2am, the logs tell you exactly what happened, when, and in what order." },
+
+  { cat:"Infra & Process", term:"Cloud", full:"Cloud",
+    def:"Someone else's powerful computers that you rent to store data or run your app. Accessible from anywhere on Earth.",
+    ex:"When you post a photo to Instagram, it doesn't live on Instagram's phone — it gets stored in the cloud." },
+
+  { cat:"Infra & Process", term:"Database", full:"Database",
+    def:"Where your app saves all its data permanently — users, posts, orders, settings. Like a giant, searchable spreadsheet that code can read and update.",
+    ex:"When you sign up for an app, your username and password get stored in a database." },
+
+  { cat:"Infra & Process", term:"Dependency", full:"Dependency",
+    def:"A piece of code your project borrows from somewhere else to do a job. Your app depends on it to work — if it's missing, things break.",
+    ex:"If your app uses React, React is a dependency. Remove it and nothing works anymore." },
+
+  { cat:"Infra & Process", term:"HTTPS", full:"HTTPS / SSL",
+    def:"The \"S\" in https:// means your connection is encrypted — no one can read what's passing between your browser and the website.",
+    ex:"The padlock icon in your browser means the site uses HTTPS. Never enter passwords on a site without it." },
+
+  // ── Claude Code Commands (20) — Pro only ────────────────────────────────
+  { cat:"Claude Code Commands", term:"/init", full:"/init — Slash Command",
+    def:"Analyzes your project and creates a CLAUDE.md file — a memory card that Claude reads at the start of every session so it always understands your project.",
+    ex:"Run /init at the start of a new project so Claude knows the tech stack, file structure, and your rules." },
+
+  { cat:"Claude Code Commands", term:"/clear", full:"/clear — Slash Command",
+    def:"Wipes the entire conversation and starts completely fresh. Useful when you switch tasks and old context is confusing things.",
+    ex:"Use /clear when your chat has gone in too many directions and you want a clean slate." },
+
+  { cat:"Claude Code Commands", term:"/compact", full:"/compact — Slash Command",
+    def:"Squishes the conversation into a shorter summary to free up space in the context window, so Claude can keep going on longer tasks.",
+    ex:"Use /compact on a long session so Claude stops forgetting things from an hour ago." },
+
+  { cat:"Claude Code Commands", term:"/model", full:"/model — Slash Command",
+    def:"Switches which Claude model you're using mid-session — without starting over.",
+    ex:"Switch to a faster model for quick edits, then back to Opus for complex architecture decisions." },
+
+  { cat:"Claude Code Commands", term:"/cost", full:"/cost — Slash Command",
+    def:"Shows how many tokens the current session has used and what it has cost in dollars.",
+    ex:"Check /cost before a massive refactor to see if you're approaching your usage budget." },
+
+  { cat:"Claude Code Commands", term:"/context", full:"/context — Slash Command",
+    def:"Shows a visual indicator of how full the context window is — how much \"whiteboard space\" is left.",
+    ex:"If /context shows 80% full, it's a good time to use /compact or /clear soon." },
+
+  { cat:"Claude Code Commands", term:"/resume", full:"/resume — Slash Command",
+    def:"Picks up a previous Claude Code session by its name or ID — so you can continue exactly where you left off.",
+    ex:"Use /resume \"auth refactor\" to jump back into yesterday's work without re-explaining everything." },
+
+  { cat:"Claude Code Commands", term:"/fork", full:"/fork — Slash Command",
+    def:"Creates a copy of the current conversation so you can try a completely different approach without losing the original thread.",
+    ex:"Fork before asking Claude to try a totally different architecture solution — keep both paths open." },
+
+  { cat:"Claude Code Commands", term:"/rename", full:"/rename — Slash Command",
+    def:"Gives the current session a memorable name so you can find and resume it later.",
+    ex:"/rename \"checkout bug fix\" makes the session easy to find with /resume next time." },
+
+  { cat:"Claude Code Commands", term:"/help", full:"/help — Slash Command",
+    def:"Lists every available command — including custom skills you've added to the project.",
+    ex:"Run /help to discover commands you haven't tried yet, like /fork or /compact." },
+
+  { cat:"Claude Code Commands", term:'claude "..."', full:'claude "query" — CLI Launch',
+    def:"Opens Claude Code and immediately kicks off with the text you typed — no need to type again once it opens.",
+    ex:'claude "explain this codebase" launches Claude and starts with that question right away.' },
+
+  { cat:"Claude Code Commands", term:"claude -p", full:'claude -p "query" — One-shot Mode',
+    def:"Sends one prompt, prints the answer, and exits immediately. Great for quick questions you don't need a full session for.",
+    ex:'claude -p "what does this function do?" gets you an answer without opening an interactive session.' },
+
+  { cat:"Claude Code Commands", term:"claude -c", full:"claude -c — Resume Last Session",
+    def:"Resumes the most recent Claude Code session — no name or ID needed. Just picks up where you left off.",
+    ex:"Close Terminal, reopen it later, type claude -c — and you're right back in the conversation." },
+
+  { cat:"Claude Code Commands", term:"--model flag", full:"claude --model — Set Model on Launch",
+    def:"Tells Claude which AI model to use when you start a session from the command line.",
+    ex:'claude --model claude-opus-4-6 launches a session using the most powerful Opus model.' },
+
+  { cat:"Claude Code Commands", term:"Shift+Tab", full:"Shift+Tab — Cycle Modes",
+    def:"Cycles through Claude Code's three modes: Normal (asks before doing), Auto-accept (just does it), and Plan mode (describes before doing).",
+    ex:"Press Shift+Tab to switch to auto-accept when you trust Claude and want it to move faster." },
+
+  { cat:"Claude Code Commands", term:"! prefix", full:"! Prefix — Run Shell Command",
+    def:"Type ! before any terminal command to run it inside Claude Code without leaving the chat window.",
+    ex:"Type !git status to check your git state mid-conversation without opening a separate terminal." },
+
+  { cat:"Claude Code Commands", term:"@ prefix", full:"@ Prefix — Reference a File",
+    def:"Type @ followed by a file path to include that file's content in your message — Claude reads it as context.",
+    ex:"@src/auth.js fix the token expiry logic — Claude reads that file and focuses on it." },
+
+  { cat:"Claude Code Commands", term:"CLAUDE.md", full:"CLAUDE.md — Project Memory",
+    def:"A file in your project that Claude reads at the start of every session — your persistent rules, preferences, and context. It's like a briefing note.",
+    ex:"Put your preferred coding style, tech stack, and team rules in CLAUDE.md so Claude always follows them." },
+
+  { cat:"Claude Code Commands", term:"Auto-accept", full:"Auto-accept Mode",
+    def:"A mode where Claude makes all file edits and takes all actions immediately, without stopping to ask your permission each time.",
+    ex:"Enable auto-accept when you trust Claude's direction and want it to work faster without interruptions." },
+
+  { cat:"Claude Code Commands", term:"Plan mode", full:"Plan Mode",
+    def:"A mode where Claude first explains everything it plans to do — then waits for you to approve before touching anything.",
+    ex:"Use plan mode before a big refactor so you can review and adjust the approach before any files change." },
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const STORAGE_KEY = "ai_flashcards_v4";
+
+function catClass(cat) {
+  return { "AI & Claude":"ai","Git & GitHub":"git","Code & Dev":"code",
+           "Infra & Process":"infra","Claude Code Commands":"cc" }[cat] || "ai";
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let state = { deck:[], index:0, got:[], miss:[], flipped:false };
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||"");
+    if (s && s.deck && s.deck.length) { state=s; return true; }
+  } catch(_) {}
+  return false;
+}
+
+function buildDeck(retryMissed) {
+  const pool = retryMissed ? state.miss.slice() : CARDS.map((_,i)=>i);
+  state.deck    = shuffle(pool);
+  state.index   = 0;
+  state.got     = [];
+  state.miss    = [];
+  state.flipped = false;
+}
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const $landing     = document.getElementById("landing");
+const $stage       = document.getElementById("stage");
+const $cardOuter   = document.getElementById("cardOuter");
+const $card        = document.getElementById("card");
+const $shadow      = document.getElementById("cardShadow");
+const $stackCards  = document.getElementById("stackCards");
+const $frontFace   = $card.querySelector(".card-front");
+const $backFace    = $card.querySelector(".card-back");
+const $backActions = $card.querySelector(".back-actions");
+const $badge       = document.getElementById("frontBadge");
+const $term      = document.getElementById("frontTerm");
+const $full      = document.getElementById("backFullName");
+const $def       = document.getElementById("backDef");
+const $ex        = document.getElementById("backEx");
+const $fill      = document.getElementById("progressFill");
+const $label     = document.getElementById("progressLabel");
+const $pscore    = document.getElementById("progressScore");
+const $results   = document.getElementById("results");
+const $pgWrap    = document.getElementById("progressWrap");
+const $dict       = document.getElementById("dictionary");
+const $dictList   = document.getElementById("dictList");
+const $dictSearch = document.getElementById("dictSearch");
+const $dictCount  = document.getElementById("dictCount");
+const $sortCat    = document.getElementById("sortCat");
+const $sortAZ     = document.getElementById("sortAZ");
+
+// ── Show landing ───────────────────────────────────────────────────────────
+function showLanding() {
+  $landing.style.display = "flex";
+  $stage.style.display   = "none";
+  $pgWrap.style.display  = "none";
+  $results.style.display = "none";
+  $dict.style.display    = "none";
+}
+
+// ── Card stack ─────────────────────────────────────────────────────────────
+function updateStack() {
+  const remaining = state.deck.length - state.index - 1;
+  $stackCards.innerHTML = "";
+  const count = Math.min(remaining, 4);
+  for (let i = count; i >= 1; i--) {
+    const el = document.createElement("div");
+    el.className = "stack-card";
+    el.setAttribute("data-pos", String(i));
+    $stackCards.appendChild(el);
+  }
+}
+
+// ── Show card ──────────────────────────────────────────────────────────────
+function showCard() {
+  if (state.index >= state.deck.length) { showResults(); return; }
+
+  const ci    = state.deck[state.index];
+  const c     = CARDS[ci];
+  const total = state.deck.length;
+  const done  = state.got.length + state.miss.length;
+
+  // Reset card-outer position (after swipe animation)
+  $cardOuter.classList.remove("lifted");
+  $cardOuter.style.transition = "none";
+  $cardOuter.style.transform  = "";
+  void $cardOuter.offsetWidth;
+
+  // Snap back to front face instantly (no transition)
+  $card.style.transition = "none";
+  $card.style.transform  = "";
+  state.flipped          = false;
+  void $card.offsetWidth; // force reflow
+
+  // Restore face visibility
+  $frontFace.style.opacity           = "1";
+  $backFace.style.opacity            = "0";
+  $backActions.style.pointerEvents   = "none"; // buttons not reachable until card flips
+
+  // Reset shadow
+  $shadow.style.transform = "";
+  $shadow.style.boxShadow = "0 28px 55px rgba(0,0,0,0.18)";
+
+  $badge.className = "badge badge-" + catClass(c.cat);
+  $badge.textContent = c.cat;
+
+  $term.textContent = c.term;
+  $term.className = "term" + (c.term.length > 16 ? " term-xs" : c.term.length > 10 ? " term-sm" : "");
+
+  $full.textContent = c.full.toUpperCase();
+  $def.textContent  = c.def;
+  $ex.textContent   = "e.g. " + c.ex;
+
+  const pct = total > 0 ? (done/total)*100 : 0;
+  $fill.style.width      = pct + "%";
+  $fill.style.background = "#555";
+  $label.textContent = `Card ${done+1} of ${total}`;
+  $pscore.innerHTML  = `<span style="color:#333">&#10003; ${state.got.length}</span>&ensp;<span style="color:#888">&#10007; ${state.miss.length}</span>`;
+
+  $landing.style.display = "none";
+  $stage.style.display   = "";
+  $pgWrap.style.display  = "";
+  $results.style.display = "none";
+  $dict.style.display    = "none";
+
+  updateStack();
+  save();
+}
+
+// ── Results ────────────────────────────────────────────────────────────────
+function showResults() {
+  $stage.style.display   = "none";
+  $pgWrap.style.display  = "none";
+  $results.style.display = "flex";
+
+  const total  = state.deck.length;
+  const gotCnt = state.got.length;
+
+  document.getElementById("scoreNum").textContent = gotCnt;
+  document.getElementById("scorePct").textContent = total > 0
+    ? Math.round((gotCnt/total)*100)+"%" : "—";
+  document.getElementById("scoreSub").textContent =
+    `${gotCnt} known · ${state.miss.length} to review · ${total} total`;
+
+  const cats = ["AI & Claude","Git & GitHub","Code & Dev","Infra & Process","Claude Code Commands"];
+
+  const $bars = document.getElementById("barRow");
+  $bars.innerHTML = "";
+
+  cats.forEach(cat => {
+    const catCards = state.deck.filter(i => CARDS[i].cat === cat);
+    if (!catCards.length) return;
+    const catGot = catCards.filter(i => state.got.includes(i)).length;
+    const pct    = Math.round((catGot/catCards.length)*100);
+    $bars.innerHTML += `
+      <div class="bar-item">
+        <div class="bar-label">
+          <span>${cat}</span>
+          <span style="color:var(--text-muted)">${catGot}/${catCards.length}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:#555"></div>
+        </div>
+      </div>`;
+  });
+
+  document.getElementById("btnRetry").disabled = state.miss.length === 0;
+  save();
+}
+
+// ── Dictionary ─────────────────────────────────────────────────────────────
+let dictSort = "cat"; // "cat" or "az"
+
+function getDictCards() {
+  return CARDS.slice();
+}
+
+function renderDict() {
+  const query = ($dictSearch.value || "").trim().toLowerCase();
+  let cards = getDictCards();
+
+  // Filter by search
+  if (query) {
+    cards = cards.filter(c =>
+      c.term.toLowerCase().includes(query) ||
+      c.def.toLowerCase().includes(query) ||
+      (c.full && c.full.toLowerCase().includes(query))
+    );
+  }
+
+  $dictCount.textContent = cards.length + " term" + (cards.length !== 1 ? "s" : "");
+  $dictList.innerHTML = "";
+
+  if (!cards.length) {
+    $dictList.innerHTML = '<div class="dict-empty">No terms match your search.</div>';
+    return;
+  }
+
+  if (dictSort === "az") {
+    // Sort alphabetically and render as a flat list
+    cards.sort((a, b) => a.term.localeCompare(b.term));
+    cards.forEach(c => {
+      $dictList.insertAdjacentHTML("beforeend", dictItemHTML(c));
+    });
+  } else {
+    // Group by category
+    const catOrder = ["AI & Claude","Git & GitHub","Code & Dev","Infra & Process","Claude Code Commands"];
+    catOrder.forEach(cat => {
+      const catCards = cards.filter(c => c.cat === cat);
+      if (!catCards.length) return;
+      $dictList.insertAdjacentHTML("beforeend",
+        `<div class="dict-cat-header">${cat} &mdash; ${catCards.length} terms</div>`);
+      catCards.forEach(c => {
+        $dictList.insertAdjacentHTML("beforeend", dictItemHTML(c));
+      });
+    });
+  }
+}
+
+function dictItemHTML(c) {
+  const termLine = c.full && c.full !== c.term
+    ? `${escapeHTML(c.term)} — ${escapeHTML(c.full)}`
+    : escapeHTML(c.term);
+  return `
+    <div class="dict-item">
+      <div class="dict-item-term">${termLine}</div>
+      <div class="dict-item-def">${escapeHTML(c.def)}</div>
+      <div class="dict-item-ex">${escapeHTML("e.g. " + c.ex)}</div>
+    </div>`;
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function showDict() {
+  $dictSearch.value = "";
+
+  $landing.style.display = "none";
+  $stage.style.display   = "none";
+  $pgWrap.style.display  = "none";
+  $results.style.display = "none";
+  $dict.style.display    = "flex";
+
+  renderDict();
+}
+
+// Sort toggle buttons
+$sortCat.addEventListener("click", () => {
+  dictSort = "cat";
+  $sortCat.classList.add("active");
+  $sortAZ.classList.remove("active");
+  renderDict();
+});
+$sortAZ.addEventListener("click", () => {
+  dictSort = "az";
+  $sortAZ.classList.add("active");
+  $sortCat.classList.remove("active");
+  renderDict();
+});
+
+// Live search
+$dictSearch.addEventListener("input", renderDict);
+
+// ── 3D tilt + gloss ───────────────────────────────────────────────────────
+const glossStyle = document.createElement("style");
+document.head.appendChild(glossStyle);
+
+$stage.addEventListener("mousemove", e => {
+  if (state.flipped) return;
+
+  const r  = $stage.getBoundingClientRect();
+  const rx = ((e.clientY - r.top  - r.height/2) / (r.height/2)) * -5;
+  const ry = ((e.clientX - r.left - r.width /2) / (r.width /2)) *  5;
+
+  // Tilt tracks cursor instantly (no transition); scale is on card-outer (0.4s ease)
+  $card.style.transition = "none";
+  $card.style.transform  = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+  $cardOuter.classList.add("lifted"); // scale(1.02) via CSS transition
+
+  // Directional shadow
+  const shx = ry * 0.8;
+  const shy = -rx * 0.8 + 10;
+  $shadow.style.transform = `translateX(${shx}px) translateY(${shy}px)`;
+  $shadow.style.boxShadow = `0 ${28 + Math.abs(rx)}px ${50 + Math.abs(ry)}px rgba(0,0,0,0.22)`;
+
+  // Moving gloss
+  const px = ((e.clientX - r.left) / r.width)  * 100;
+  const py = ((e.clientY - r.top)  / r.height) * 100;
+  glossStyle.textContent = `.card-face::after { background: radial-gradient(circle at ${px}% ${py}%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.06) 40%, transparent 65%); }`;
+});
+
+$stage.addEventListener("mouseleave", () => {
+  $shadow.style.transform = "";
+  $shadow.style.boxShadow = "0 28px 55px rgba(0,0,0,0.18)";
+  glossStyle.textContent  = "";
+  $cardOuter.classList.remove("lifted"); // scale smoothly back to 1
+  if (state.flipped) return;
+  $card.style.transition = "transform 0.35s ease-out";
+  $card.style.transform  = "";
+});
+
+// ── Click to flip ──────────────────────────────────────────────────────────
+$stage.addEventListener("click", () => {
+  if (state.index >= state.deck.length) return;
+  if (!state.flipped) {
+    // Smooth flip animation
+    $card.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+    $card.style.transform  = "rotateY(180deg)";
+    $shadow.style.transform = "";
+    glossStyle.textContent  = "";
+    state.flipped = true;
+
+    // At 50% of the animation, swap which face is visible.
+    // The back face has scaleX(-1) pre-applied, so when the card (parent)
+    // is at rotateY(180deg), the two mirror operations cancel and text reads normally.
+    setTimeout(() => {
+      $frontFace.style.opacity  = "0";
+      $backFace.style.opacity   = "1";
+      $backActions.style.pointerEvents = "auto"; // allow button clicks
+    }, 240);
+  }
+});
+
+// ── Card swipe animation ───────────────────────────────────────────────────
+function swipeCard(direction) {
+  const tx  = direction === "got" ? "120%" : "-120%";
+  const rot = direction === "got" ? "8deg" : "-8deg";
+  $cardOuter.style.transition = "transform 0.35s ease-in";
+  $cardOuter.style.transform  = `translateX(${tx}) rotate(${rot})`;
+  setTimeout(() => {
+    if (direction === "got") {
+      state.got.push(state.deck[state.index]);
+    } else {
+      state.miss.push(state.deck[state.index]);
+    }
+    state.index++;
+    showCard();
+  }, 350);
+}
+
+// ── Answer buttons ─────────────────────────────────────────────────────────
+document.getElementById("btnGot").addEventListener("click", e => {
+  e.stopPropagation();
+  swipeCard("got");
+});
+document.getElementById("btnMiss").addEventListener("click", e => {
+  e.stopPropagation();
+  swipeCard("miss");
+});
+
+// ── Landing ────────────────────────────────────────────────────────────────
+document.getElementById("pickStudy").addEventListener("click", () => {
+  buildDeck(false);
+  showCard();
+});
+document.getElementById("pickBrowse").addEventListener("click", () => {
+  showDict();
+});
+
+// ── Results buttons ────────────────────────────────────────────────────────
+document.getElementById("btnRetry").addEventListener("click", () => {
+  buildDeck(true);
+  showCard();
+});
+document.getElementById("btnRestart").addEventListener("click", () => {
+  buildDeck(false);
+  showCard();
+});
+// Back buttons (event delegation — handles all .js-back buttons in any view)
+document.addEventListener("click", e => {
+  if (e.target.closest(".js-back")) {
+    state.deck = [];
+    save();
+    showLanding();
+  }
+});
+
+// ── Keyboard navigation ────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if ($stage.style.display === "none") return;
+  if (e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    if (!state.flipped) $stage.click();
+  } else if (e.key === "ArrowRight") {
+    if (state.flipped) swipeCard("got");
+  } else if (e.key === "ArrowLeft") {
+    if (state.flipped) swipeCard("miss");
+  }
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+if (load() && state.deck.length) {
+  showCard();
+} else {
+  showLanding();
+}
+</script>
+</body>
+</html>
