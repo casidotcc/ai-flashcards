@@ -98,6 +98,14 @@
     cursor: pointer;
     border: 1.5px solid transparent;
     transition: border-color 0.18s, transform 0.18s;
+    /* Reset <button> defaults */
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    text-align: left;
   }
   .mode-card:hover { border-color: #F55110; transform: translateY(-2px); }
   .mode-name { font-size: 12px; font-weight: 500; }
@@ -570,14 +578,14 @@
   <div class="landing-title">Do you actually speak AI?</div>
   <div class="landing-sub" id="landingSub"></div>
   <div class="landing-cards">
-    <div class="mode-card" id="pickStudy">
+    <button type="button" class="mode-card" id="pickStudy">
       <div class="mode-name">Study</div>
       <div class="mode-desc">Flip through flashcards one by one. Mark what you know, repeat what you don't.</div>
-    </div>
-    <div class="mode-card" id="pickBrowse">
+    </button>
+    <button type="button" class="mode-card" id="pickBrowse">
       <div class="mode-name">Browse</div>
       <div class="mode-desc">Scroll through all 81 terms in one view. Search by keyword or filter by category.</div>
-    </div>
+    </button>
   </div>
   <div class="landing-footer">Design + Direction: <a href="mailto:hello@casi.cc">hello@casi.cc</a></div>
 </div>
@@ -704,7 +712,7 @@ function shuffle(arr) {
 // ── State ──────────────────────────────────────────────────────────────────
 let state = { deck:[], pool:[], index:0, got:[], miss:[], flipped:false };
 
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(_) {} }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||"");
