@@ -66,7 +66,21 @@
     color: var(--text-muted);
     margin-top: -12px;
     text-align: center;
+    line-height: 1.8;
+    max-width: 480px;
   }
+  .landing-footer {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+  .landing-footer a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .landing-footer a:hover { color: var(--text); }
   .landing-cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -117,6 +131,25 @@
   }
 
   /* ── Card stage ──────────────────────────────── */
+  .stack-card {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 100%;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: var(--radius);
+    pointer-events: none;
+  }
+  #stackCard2 {
+    width: 90%;
+    transform: translateX(-50%) translateY(20px);
+  }
+  #stackCard3 {
+    width: 80%;
+    transform: translateX(-50%) translateY(40px);
+  }
+
   .stage-wrap {
     flex: 1;
     display: flex;
@@ -151,26 +184,31 @@
     border-radius: var(--radius);
   }
 
-  /* ── Metallic card surface ───────────────────────── */
+  /* ── Card surfaces ───────────────────────────────── */
   .card-face {
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
-    /* Cool brushed-aluminum gradient — light → bright → mid → slightly dark */
-    background: linear-gradient(155deg, #eef0f3 0%, #fafbfc 30%, #eceef1 62%, #e3e6e9 100%);
-    /* Bevel: bright top-left edge, subtle dark bottom-right edge */
-    box-shadow:
-      inset 1px 1px 0 rgba(255,255,255,0.92),
-      inset -1px -1px 0 rgba(0,0,0,0.09);
     pointer-events: none;
   }
+  /* Front: dark near-black with subtle metallic sheen */
+  .card-front {
+    background: linear-gradient(155deg, #242424 0%, #1e1e1e 40%, #1a1a1a 70%, #161616 100%);
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,0.08),
+      inset -1px -1px 0 rgba(0,0,0,0.3);
+  }
+  /* Back: light metallic as before */
   .card-back {
     transform: scaleX(-1);
     opacity: 0;
     background: linear-gradient(155deg, #eaecef 0%, #f7f8fa 30%, #e8eaed 62%, #e0e3e6 100%);
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,0.92),
+      inset -1px -1px 0 rgba(0,0,0,0.09);
   }
 
-  /* Directional sheen — angle updated by JS on mousemove */
+  /* Subtle gloss overlay on both faces */
   .card-face::before {
     content: "";
     position: absolute;
@@ -178,24 +216,22 @@
     border-radius: var(--radius);
     background: linear-gradient(
       145deg,
-      rgba(255,255,255,0.62) 0%,
-      rgba(255,255,255,0.06) 48%,
-      rgba(0,0,0,0.03) 100%
+      rgba(255,255,255,0.06) 0%,
+      rgba(255,255,255,0.01) 48%,
+      rgba(0,0,0,0.02) 100%
     );
     pointer-events: none;
     z-index: 1;
-    transition: background 0.08s;
   }
-  /* Specular highlight spot — position updated by JS on mousemove */
+  /* Specular highlight spot */
   .card-face::after {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
-    background: radial-gradient(circle at 38% 32%, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.08) 38%, transparent 62%);
+    background: radial-gradient(circle at 38% 32%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 38%, transparent 62%);
     pointer-events: none;
     z-index: 2;
-    transition: background 0.05s;
   }
 
   /* Front */
@@ -217,13 +253,14 @@
     font-weight: 500;
     letter-spacing: -0.3px;
     line-height: 1.1;
+    color: #ffffff;
   }
   .term.term-sm { font-size: 24px; }
   .term.term-xs { font-size: 24px; }
 
   .hint {
     font-size: 12px;
-    color: var(--text-muted);
+    color: #888;
   }
 
   /* Back */
@@ -470,7 +507,7 @@
     transition: opacity 0.3s;
     z-index: 50;
   }
-  .pile.visible { opacity: 1; }
+  .pile.visible { opacity: 1; pointer-events: auto; }
   .got-pile  { right: 28px; }
   .miss-pile { left: 28px; }
   .pile-badge {
@@ -483,36 +520,66 @@
   }
   .got-pile  .pile-badge { background: #dcfce7; color: #16a34a; }
   .miss-pile .pile-badge { background: #fee2e2; color: #dc2626; }
+
+  /* ── Pile flyouts ────────────────────────────── */
+  .pile-flyout {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    max-height: 240px;
+    overflow-y: auto;
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100;
+  }
+  .miss-pile .pile-flyout { left: 0; }
+  .got-pile  .pile-flyout { right: 0; }
+  .pile.visible:hover .pile-flyout {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .flyout-header {
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  .miss-pile .flyout-header { color: #dc2626; }
+  .got-pile  .flyout-header { color: #16a34a; }
+  .flyout-term {
+    padding: 2px 0;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .flyout-empty { color: var(--text-muted); }
 </style>
 </head>
 <body>
 
 <!-- Landing -->
 <div id="landing">
-  <div class="landing-title">AI & Dev Glossary</div>
+  <div class="landing-title">Do you actually speak AI?</div>
   <div class="landing-sub" id="landingSub"></div>
   <div class="landing-cards">
     <div class="mode-card" id="pickStudy">
-      <!-- Converging horizontal lines — suggests stacking / focus / progression -->
-      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <line x1="6"  y1="13" x2="42" y2="13" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-        <line x1="10" y1="21" x2="38" y2="21" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-        <line x1="15" y1="29" x2="33" y2="29" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-        <line x1="20" y1="37" x2="28" y2="37" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-      </svg>
       <div class="mode-name">Study</div>
-      <div class="mode-desc">Flip through cards, mark what you know.</div>
+      <div class="mode-desc">Flip through flashcards one by one. Mark what you know, repeat what you don't.</div>
     </div>
     <div class="mode-card" id="pickBrowse">
-      <!-- Magnifier outline — suggests scanning / exploring -->
-      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <circle cx="20" cy="20" r="13" stroke="#888" stroke-width="2"/>
-        <line x1="30" y1="30" x2="42" y2="42" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-      </svg>
       <div class="mode-name">Browse</div>
-      <div class="mode-desc">Search and read all terms.</div>
+      <div class="mode-desc">Scroll through all 81 terms in one view. Search by keyword or filter by category.</div>
     </div>
   </div>
+  <div class="landing-footer">Design + Direction: <a href="mailto:hello@casi.cc">hello@casi.cc</a></div>
 </div>
 
 <!-- Progress bar -->
@@ -529,6 +596,8 @@
 <!-- Card -->
 <div class="stage-wrap" id="stageWrap" style="display:none">
 <div class="stage" id="stage">
+  <div class="stack-card" id="stackCard3"></div>
+  <div class="stack-card" id="stackCard2"></div>
   <div class="card-outer" id="cardOuter">
   <div class="card" id="card">
     <div class="card-face card-front">
@@ -592,16 +661,26 @@
 
 <!-- Discard pile counters (fixed corners, shown during card game) -->
 <div class="pile miss-pile" id="missPile">
-  <svg width="30" height="22" viewBox="0 0 30 22" fill="none" aria-hidden="true">
-    <rect x="8" y="0" width="20" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5"/>
-    <rect x="2" y="5" width="20" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5" fill="#fee2e2"/>
+  <div class="pile-flyout">
+    <div class="flyout-header">Still learning</div>
+    <div id="missFlyoutList" class="flyout-list"></div>
+  </div>
+  <svg width="36" height="28" viewBox="0 0 36 28" fill="none" aria-hidden="true">
+    <rect x="8"  y="0"  width="22" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5"/>
+    <rect x="4"  y="5"  width="22" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5"/>
+    <rect x="0"  y="10" width="22" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5" fill="#fee2e2"/>
   </svg>
   <span class="pile-badge" id="missCount">0</span>
 </div>
 <div class="pile got-pile" id="gotPile">
-  <svg width="30" height="22" viewBox="0 0 30 22" fill="none" aria-hidden="true">
-    <rect x="8" y="0" width="20" height="14" rx="2" stroke="#86efac" stroke-width="1.5"/>
-    <rect x="2" y="5" width="20" height="14" rx="2" stroke="#86efac" stroke-width="1.5" fill="#dcfce7"/>
+  <div class="pile-flyout">
+    <div class="flyout-header">Got it</div>
+    <div id="gotFlyoutList" class="flyout-list"></div>
+  </div>
+  <svg width="36" height="28" viewBox="0 0 36 28" fill="none" aria-hidden="true">
+    <rect x="8"  y="0"  width="22" height="14" rx="2" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="4"  y="5"  width="22" height="14" rx="2" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="0"  y="10" width="22" height="14" rx="2" stroke="#86efac" stroke-width="1.5" fill="#dcfce7"/>
   </svg>
   <span class="pile-badge" id="gotCount">0</span>
 </div>
@@ -623,20 +702,25 @@ function shuffle(arr) {
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
-let state = { deck:[], index:0, got:[], miss:[], flipped:false };
+let state = { deck:[], pool:[], index:0, got:[], miss:[], flipped:false };
 
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||"");
-    if (s && s.deck && s.deck.length) { state=s; return true; }
+    if (s && s.deck && s.deck.length) {
+      state = s;
+      state.pool = state.pool || [...new Set(state.deck)];
+      return true;
+    }
   } catch(_) {}
   return false;
 }
 
 function buildDeck(retryMissed) {
-  const pool = retryMissed ? state.miss.slice() : CARDS.map((_,i)=>i);
-  state.deck    = shuffle(pool);
+  const pool    = retryMissed ? [...new Set(state.miss)] : CARDS.map((_,i)=>i);
+  state.pool    = pool;
+  state.deck    = shuffle(pool.slice());
   state.index   = 0;
   state.got     = [];
   state.miss    = [];
@@ -649,6 +733,8 @@ function buildDeck(retryMissed) {
 const $landing     = document.getElementById("landing");
 const $stageWrap   = document.getElementById("stageWrap");
 const $stage       = document.getElementById("stage");
+const $stackCard2  = document.getElementById("stackCard2");
+const $stackCard3  = document.getElementById("stackCard3");
 const $cardOuter   = document.getElementById("cardOuter");
 const $card        = document.getElementById("card");
 const $frontFace   = $card.querySelector(".card-front");
@@ -670,15 +756,32 @@ const $dictSearch = document.getElementById("dictSearch");
 const $dictCount  = document.getElementById("dictCount");
 const $sortCat    = document.getElementById("sortCat");
 const $sortAZ     = document.getElementById("sortAZ");
-const $gotPile    = document.getElementById("gotPile");
-const $missPile   = document.getElementById("missPile");
-const $gotCount   = document.getElementById("gotCount");
-const $missCount  = document.getElementById("missCount");
+const $gotPile        = document.getElementById("gotPile");
+const $missPile       = document.getElementById("missPile");
+const $gotCount       = document.getElementById("gotCount");
+const $missCount      = document.getElementById("missCount");
+const $gotFlyoutList  = document.getElementById("gotFlyoutList");
+const $missFlyoutList = document.getElementById("missFlyoutList");
+
+// ── Flyout lists ───────────────────────────────────────────────────────────
+function renderFlyouts() {
+  const render = (el, indices) => {
+    if (!indices.length) {
+      el.innerHTML = '<div class="flyout-term flyout-empty">None yet</div>';
+      return;
+    }
+    el.innerHTML = indices.map(i =>
+      `<div class="flyout-term">${escapeHTML(CARDS[i].term)}</div>`
+    ).join("");
+  };
+  render($missFlyoutList, state.miss);
+  render($gotFlyoutList,  state.got);
+}
 
 // ── Show landing ───────────────────────────────────────────────────────────
 function showLanding() {
   document.getElementById("landingSub").textContent =
-    CARDS.length + " terms across AI, Git, code, and Claude.";
+    "81 terms across AI, development, and version control — explained in plain language, for anyone who isn't a developer or is just new to the field.";
   $landing.style.display    = "flex";
   $stageWrap.style.display  = "none";
   $pgWrap.style.display     = "none";
@@ -694,8 +797,13 @@ function showCard() {
 
   const ci    = state.deck[state.index];
   const c     = CARDS[ci];
-  const total = state.deck.length;
-  const done  = state.got.length + state.miss.length;
+  const total = state.pool.length;
+  const done  = state.got.length;
+
+  // Reset stack card 2 to default position (active card loads on top, instant jump hidden)
+  $stackCard2.style.transition = "none";
+  $stackCard2.style.width      = "90%";
+  $stackCard2.style.transform  = "translateX(-50%) translateY(20px)";
 
   // Reset card-outer position and opacity (after fly animation)
   $cardOuter.classList.remove("lifted");
@@ -728,7 +836,7 @@ function showCard() {
   const pct = total > 0 ? (done/total)*100 : 0;
   $fill.style.width      = pct + "%";
   $fill.style.background = "#555";
-  $label.textContent = `Card ${done+1} of ${total}`;
+  $label.textContent = `${done} of ${total} learned`;
 
   $landing.style.display    = "none";
   $stageWrap.style.display  = "";
@@ -738,6 +846,7 @@ function showCard() {
 
   $gotPile.classList.add("visible");
   $missPile.classList.add("visible");
+  renderFlyouts();
   save();
 }
 
@@ -747,14 +856,14 @@ function showResults() {
   $pgWrap.style.display    = "none";
   $results.style.display   = "flex";
 
-  const total  = state.deck.length;
+  const total  = state.pool.length;
   const gotCnt = state.got.length;
 
   document.getElementById("scoreNum").textContent = gotCnt;
   document.getElementById("scorePct").textContent = total > 0
     ? Math.round((gotCnt/total)*100)+"%" : "—";
   document.getElementById("scoreSub").textContent =
-    `${gotCnt} known · ${state.miss.length} to review · ${total} total`;
+    `${gotCnt} learned · ${state.miss.length} to review · ${total} total`;
 
   const cats = ["AI & Claude","Git & GitHub","Code & Dev","Infra & Process","Claude Code Commands"];
 
@@ -762,7 +871,7 @@ function showResults() {
   $bars.innerHTML = "";
 
   cats.forEach(cat => {
-    const catCards = state.deck.filter(i => CARDS[i].cat === cat);
+    const catCards = state.pool.filter(i => CARDS[i].cat === cat);
     if (!catCards.length) return;
     const catGot = catCards.filter(i => state.got.includes(i)).length;
     const pct    = Math.round((catGot/catCards.length)*100);
@@ -950,15 +1059,45 @@ function swipeCard(direction) {
   $cardOuter.style.transform  = `translateX(${tx}) translateY(60vh) scale(0.08) rotate(${rot})`;
   $cardOuter.style.opacity    = "0";
 
+  // Shift stack cards forward (card 3 → card 2 position, card 2 → card 1 position)
+  $stackCard2.style.transition = "transform 0.3s ease, width 0.3s ease";
+  $stackCard3.style.transition = "transform 0.3s ease, width 0.3s ease";
+  $stackCard2.style.width      = "100%";
+  $stackCard2.style.transform  = "translateX(-50%) translateY(0px)";
+  $stackCard3.style.width      = "90%";
+  $stackCard3.style.transform  = "translateX(-50%) translateY(20px)";
+
+  // At 300ms: new card fades in at card 3 position
   setTimeout(() => {
+    $stackCard3.style.transition = "none";
+    $stackCard3.style.opacity    = "0";
+    $stackCard3.style.width      = "80%";
+    $stackCard3.style.transform  = "translateX(-50%) translateY(40px)";
+    void $stackCard3.offsetWidth;
+    $stackCard3.style.transition = "opacity 0.2s ease";
+    $stackCard3.style.opacity    = "1";
+  }, 300);
+
+  setTimeout(() => {
+    const cardIdx = state.deck[state.index];
     if (direction === "got") {
-      state.got.push(state.deck[state.index]);
-      $gotCount.textContent = state.got.length;
+      // Remove from still-learning, add to got (deduplicated)
+      state.miss = state.miss.filter(i => i !== cardIdx);
+      if (!state.got.includes(cardIdx)) state.got.push(cardIdx);
+      state.index++;
     } else {
-      state.miss.push(state.deck[state.index]);
-      $missCount.textContent = state.miss.length;
+      // Add to still-learning (deduplicated), re-insert at random later position
+      if (!state.miss.includes(cardIdx)) state.miss.push(cardIdx);
+      state.index++;
+      const remaining = state.deck.length - state.index;
+      const insertPos = state.index + (remaining > 0
+        ? 1 + Math.floor(Math.random() * remaining)
+        : 0);
+      state.deck.splice(insertPos, 0, cardIdx);
     }
-    state.index++;
+    $gotCount.textContent  = state.got.length;
+    $missCount.textContent = state.miss.length;
+    renderFlyouts();
     showCard();
   }, 500);
 }
