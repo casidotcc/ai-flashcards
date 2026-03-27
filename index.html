@@ -135,8 +135,8 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.07);
     transition: transform 0.35s ease, opacity 0.35s ease;
   }
-  .stack-card[data-pos="1"] { transform: translateY(10px) scale(0.90); opacity: 0.6; }
-  .stack-card[data-pos="2"] { transform: translateY(20px) scale(0.70); opacity: 0.35; }
+  .stack-card[data-pos="1"] { transform: translateY(20px) scale(0.90); opacity: 0.8; }
+  .stack-card[data-pos="2"] { transform: translateY(40px) scale(0.80); opacity: 0.6; }
 
   /* Shadow lives outside the 3D context */
   .card-shadow {
@@ -301,7 +301,7 @@
     font-weight: 400;
     font-family: inherit;
     cursor: pointer;
-    transition: filter 0.15s;
+    transition: filter 0.15s, opacity 0.25s;
   }
   .back-actions button:hover { filter: brightness(0.94); }
   /* Green / red restored on action buttons only */
@@ -767,8 +767,10 @@ function showCard() {
   // Restore face visibility
   $frontFace.style.opacity      = "1";
   $backFace.style.opacity       = "0";
-  $btnGot.style.pointerEvents   = "none"; // not reachable until card flips
+  $btnGot.style.pointerEvents   = "none"; // not reachable until card fully flips
   $btnMiss.style.pointerEvents  = "none";
+  $btnGot.style.opacity         = "1";   // reset; will dim to 0.3 mid-flip
+  $btnMiss.style.opacity        = "1";
 
   // Reset shadow
   $shadow.style.transform = "";
@@ -988,15 +990,22 @@ $stage.addEventListener("click", () => {
     glossStyle.textContent  = "";
     state.flipped = true;
 
-    // At 50% of the animation, swap which face is visible.
-    // The back face has scaleX(-1) pre-applied, so when the card (parent)
-    // is at rotateY(180deg), the two mirror operations cancel and text reads normally.
+    // At 240ms (flip midpoint): swap visible face, show buttons dimmed
     setTimeout(() => {
-      $frontFace.style.opacity     = "0";
-      $backFace.style.opacity      = "1";
-      $btnGot.style.pointerEvents  = "auto"; // allow button clicks after flip
-      $btnMiss.style.pointerEvents = "auto";
+      $frontFace.style.opacity = "0";
+      $backFace.style.opacity  = "1";
+      $btnGot.style.opacity    = "0.3";   // visible but inactive
+      $btnMiss.style.opacity   = "0.3";
+      // pointer-events stay "none" until flip completes
     }, 240);
+
+    // At 500ms (flip complete): buttons fully active
+    setTimeout(() => {
+      $btnGot.style.pointerEvents  = "auto";
+      $btnMiss.style.pointerEvents = "auto";
+      $btnGot.style.opacity        = "1";
+      $btnMiss.style.opacity       = "1";
+    }, 500);
   }
 });
 
@@ -1004,9 +1013,26 @@ $stage.addEventListener("click", () => {
 function swipeCard(direction) {
   const tx  = direction === "got" ? "60vw"  : "-60vw";
   const rot = direction === "got" ? "15deg" : "-15deg";
+
+  // Fly active card to corner
   $cardOuter.style.transition = "transform 0.5s cubic-bezier(0.4,0,1,1), opacity 0.4s ease-in 0.1s";
   $cardOuter.style.transform  = `translateX(${tx}) translateY(60vh) scale(0.08) rotate(${rot})`;
   $cardOuter.style.opacity    = "0";
+
+  // Shift stack cards forward while top card flies away
+  const card2 = $stackCards.querySelector('[data-pos="1"]'); // Card 2 → Card 1 position
+  const card3 = $stackCards.querySelector('[data-pos="2"]'); // Card 3 → Card 2 position
+  if (card2) {
+    card2.style.transition = "transform 0.4s ease, opacity 0.4s ease";
+    card2.style.transform  = "translateY(0px) scale(1)";
+    card2.style.opacity    = "1";
+  }
+  if (card3) {
+    card3.style.transition = "transform 0.4s ease, opacity 0.4s ease";
+    card3.style.transform  = "translateY(20px) scale(0.90)";
+    card3.style.opacity    = "0.8";
+  }
+
   setTimeout(() => {
     if (direction === "got") {
       state.got.push(state.deck[state.index]);
