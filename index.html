@@ -1183,12 +1183,15 @@ function showCard() {
   $btnGot.style.opacity        = "1";
   $btnMiss.style.opacity       = "1";
 
-  // Reset stack cards — safely hidden behind cardOuter at this point
+  // Reset both stack cards — safely hidden behind cardOuter at this point.
+  // stackCard3 must also be explicitly reset here because after each advance
+  // it ends up at position 2 (90%/20px) and stays there until reset.
   $stackCard2.style.transition = "none";
   $stackCard2.style.width      = "90%";
   $stackCard2.style.transform  = "translateX(-50%) translateY(20px)";
-
   $stackCard3.style.transition = "none";
+  $stackCard3.style.width      = "80%";
+  $stackCard3.style.transform  = "translateX(-50%) translateY(40px)";
 
   // Single reflow commits every reset above atomically before any paint
   void $cardOuter.offsetWidth;
@@ -1421,45 +1424,52 @@ function swipeCard(direction) {
   const tx  = direction === "got" ? "60vw"  : "-60vw";
   const rot = direction === "got" ? "15deg" : "-15deg";
 
-  // Fly active card to corner
+  // Step 1: Fly active card out.
   $cardOuter.style.transition = "transform 0.5s cubic-bezier(0.4,0,1,1), opacity 0.4s ease-in 0.1s";
   $cardOuter.style.transform  = `translateX(${tx}) translateY(60vh) scale(0.08) rotate(${rot})`;
   $cardOuter.style.opacity    = "0";
 
-  // Double-rAF: first frame reads current positions, second frame starts the
-  // transition from those positions — prevents the browser from batching the
-  // position change with the transition setting and skipping the animation.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const t = "transform 0.35s ease, width 0.35s ease";
-      $stackCard2.style.transition = t;
-      $stackCard3.style.transition = t;
-      $stackCard2.style.width      = "100%";
-      $stackCard2.style.transform  = "translateX(-50%) translateY(0px)";
-      $stackCard3.style.width      = "90%";
-      $stackCard3.style.transform  = "translateX(-50%) translateY(20px)";
-    });
-  });
+  // Immediately freeze stack cards — they must not move until the flyout is done.
+  // transition:none is set synchronously so it takes effect before any paint.
+  $stackCard2.style.transition = "none";
+  $stackCard3.style.transition = "none";
 
-  // At 350ms (stack transition done): snap card 3 back to bottom slot.
-  // stackCard2 is at 100% width and fully covers stackCard3, so the instant
-  // position snap is invisible — no opacity trick needed.
+  // Step 2: Wait for flyout to fully complete, then advance the stack.
   setTimeout(() => {
-    $stackCard3.style.transition = "none";
-    $stackCard3.style.width      = "80%";
-    $stackCard3.style.transform  = "translateX(-50%) translateY(40px)";
-  }, 350);
+    requestAnimationFrame(() => {
+      // rAF 1 — lock in the start positions (where they already are) with no
+      // transition. All assignments in one batch; no reflow between them.
+      $stackCard2.style.transition = "none";
+      $stackCard2.style.width      = "90%";
+      $stackCard2.style.transform  = "translateX(-50%) translateY(20px)";
+      $stackCard3.style.transition = "none";
+      $stackCard3.style.width      = "80%";
+      $stackCard3.style.transform  = "translateX(-50%) translateY(40px)";
 
-  // At 500ms: advance state and show next card
+      requestAnimationFrame(() => {
+        // rAF 2 — browser has committed the start state above. Now enable
+        // transitions and apply targets. Both cards move simultaneously.
+        const t = "transform 0.2s ease, width 0.2s ease";
+        $stackCard2.style.transition = t;
+        $stackCard3.style.transition = t;
+        $stackCard2.style.width      = "100%";
+        $stackCard2.style.transform  = "translateX(-50%) translateY(0px)";
+        $stackCard3.style.width      = "90%";
+        $stackCard3.style.transform  = "translateX(-50%) translateY(20px)";
+      });
+    });
+  }, 500); // matches flyout duration exactly
+
+  // Step 3: After flyout (500ms) + rAF overhead (~33ms) + advance (200ms) + buffer.
+  // showCard() resets both stack cards (transition:none) — the snaps are hidden
+  // because cardOuter covers the full card area when it reappears.
   setTimeout(() => {
     const cardIdx = state.deck[state.index];
     if (direction === "got") {
-      // Remove from still-learning, add to got (deduplicated)
       state.miss = state.miss.filter(i => i !== cardIdx);
       if (!state.got.includes(cardIdx)) state.got.push(cardIdx);
       state.index++;
     } else {
-      // Add to still-learning (deduplicated), re-insert at random later position
       if (!state.miss.includes(cardIdx)) state.miss.push(cardIdx);
       state.index++;
       const remaining = state.deck.length - state.index;
@@ -1472,7 +1482,7 @@ function swipeCard(direction) {
     $missCount.textContent = state.miss.length;
     renderFlyouts();
     showCard();
-  }, 500);
+  }, 760); // 500 fly + ~33 rAF + 200 advance + 27 buffer
 }
 
 // ── Answer buttons ─────────────────────────────────────────────────────────
