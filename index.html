@@ -125,18 +125,6 @@
   }
 
   /* ── Dynamic card stack behind main card ──────── */
-  #stackCards { position: absolute; inset: 0; pointer-events: none; }
-  .stack-card {
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius);
-    background: #fff;
-    pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
-    transition: transform 0.35s ease, opacity 0.35s ease;
-  }
-  .stack-card[data-pos="1"] { transform: translateY(20px) scale(0.90); opacity: 0.8; }
-  .stack-card[data-pos="2"] { transform: translateY(40px) scale(0.80); opacity: 0.6; }
 
   /* Shadow lives outside the 3D context */
   .card-shadow {
@@ -549,8 +537,7 @@
 <div class="progress-wrap" id="progressWrap" style="display:none">
   <div class="progress-meta">
     <button class="btn-back js-back" id="btnBack">&#8592; Back</button>
-    <span id="progressLabel">Card 1</span>
-    <span id="progressScore"></span>
+    <span id="progressLabel"></span>
   </div>
   <div class="progress-track">
     <div class="progress-fill" id="progressFill" style="width:0%"></div>
@@ -559,7 +546,6 @@
 
 <!-- Card -->
 <div class="stage" id="stage" style="display:none">
-  <div id="stackCards"></div>
   <div class="card-shadow" id="cardShadow"></div>
   <div class="card-outer" id="cardOuter">
   <div class="card" id="card">
@@ -688,7 +674,6 @@ const $stage       = document.getElementById("stage");
 const $cardOuter   = document.getElementById("cardOuter");
 const $card        = document.getElementById("card");
 const $shadow      = document.getElementById("cardShadow");
-const $stackCards  = document.getElementById("stackCards");
 const $frontFace   = $card.querySelector(".card-front");
 const $backFace    = $card.querySelector(".card-back");
 const $backActions = $card.querySelector(".back-actions");
@@ -701,7 +686,6 @@ const $def       = document.getElementById("backDef");
 const $ex        = document.getElementById("backEx");
 const $fill      = document.getElementById("progressFill");
 const $label     = document.getElementById("progressLabel");
-const $pscore    = document.getElementById("progressScore");
 const $results   = document.getElementById("results");
 const $pgWrap    = document.getElementById("progressWrap");
 const $dict       = document.getElementById("dictionary");
@@ -727,19 +711,6 @@ function showLanding() {
   $dict.style.display    = "none";
   $gotPile.classList.remove("visible");
   $missPile.classList.remove("visible");
-}
-
-// ── Card stack ─────────────────────────────────────────────────────────────
-function updateStack() {
-  const remaining = state.deck.length - state.index - 1;
-  $stackCards.innerHTML = "";
-  const count = Math.min(remaining, 2);
-  for (let i = count; i >= 1; i--) {
-    const el = document.createElement("div");
-    el.className = "stack-card";
-    el.setAttribute("data-pos", String(i));
-    $stackCards.appendChild(el);
-  }
 }
 
 // ── Show card ──────────────────────────────────────────────────────────────
@@ -792,7 +763,6 @@ function showCard() {
   $fill.style.width      = pct + "%";
   $fill.style.background = "#555";
   $label.textContent = `Card ${done+1} of ${total}`;
-  $pscore.innerHTML  = `<span style="color:#333">&#10003; ${state.got.length}</span>&ensp;<span style="color:#888">&#10007; ${state.miss.length}</span>`;
 
   $landing.style.display = "none";
   $stage.style.display   = "";
@@ -800,7 +770,6 @@ function showCard() {
   $results.style.display = "none";
   $dict.style.display    = "none";
 
-  updateStack();
   $gotPile.classList.add("visible");
   $missPile.classList.add("visible");
   save();
@@ -1018,20 +987,6 @@ function swipeCard(direction) {
   $cardOuter.style.transition = "transform 0.5s cubic-bezier(0.4,0,1,1), opacity 0.4s ease-in 0.1s";
   $cardOuter.style.transform  = `translateX(${tx}) translateY(60vh) scale(0.08) rotate(${rot})`;
   $cardOuter.style.opacity    = "0";
-
-  // Shift stack cards forward while top card flies away
-  const card2 = $stackCards.querySelector('[data-pos="1"]'); // Card 2 → Card 1 position
-  const card3 = $stackCards.querySelector('[data-pos="2"]'); // Card 3 → Card 2 position
-  if (card2) {
-    card2.style.transition = "transform 0.4s ease, opacity 0.4s ease";
-    card2.style.transform  = "translateY(0px) scale(1)";
-    card2.style.opacity    = "1";
-  }
-  if (card3) {
-    card3.style.transition = "transform 0.4s ease, opacity 0.4s ease";
-    card3.style.transform  = "translateY(20px) scale(0.90)";
-    card3.style.opacity    = "0.8";
-  }
 
   setTimeout(() => {
     if (direction === "got") {
