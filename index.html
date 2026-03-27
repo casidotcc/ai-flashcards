@@ -117,8 +117,6 @@
 
   /* ── Card stage ──────────────────────────────── */
   .stage {
-    perspective: 800px;
-    perspective-origin: 50% 42%;
     position: relative;
     margin-top: 60px;
     width: 400px;
@@ -154,11 +152,13 @@
     transition: box-shadow 0.18s, transform 0.05s;
   }
 
-  /* card-outer handles the smooth hover scale only */
+  /* card-outer: perspective container + smooth hover scale */
   .card-outer {
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
+    perspective: 800px;
+    perspective-origin: 50% 42%;
     transition: transform 0.4s ease;
   }
   .card-outer.lifted { transform: scale(1.02); }
@@ -302,7 +302,6 @@
     font-family: inherit;
     cursor: pointer;
     transition: filter 0.15s;
-    pointer-events: auto;
   }
   .back-actions button:hover { filter: brightness(0.94); }
   /* Green / red restored on action buttons only */
@@ -693,6 +692,8 @@ const $stackCards  = document.getElementById("stackCards");
 const $frontFace   = $card.querySelector(".card-front");
 const $backFace    = $card.querySelector(".card-back");
 const $backActions = $card.querySelector(".back-actions");
+const $btnGot      = document.getElementById("btnGot");
+const $btnMiss     = document.getElementById("btnMiss");
 const $badge       = document.getElementById("frontBadge");
 const $term      = document.getElementById("frontTerm");
 const $full      = document.getElementById("backFullName");
@@ -764,9 +765,10 @@ function showCard() {
   void $card.offsetWidth; // force reflow
 
   // Restore face visibility
-  $frontFace.style.opacity           = "1";
-  $backFace.style.opacity            = "0";
-  $backActions.style.pointerEvents   = "none"; // buttons not reachable until card flips
+  $frontFace.style.opacity      = "1";
+  $backFace.style.opacity       = "0";
+  $btnGot.style.pointerEvents   = "none"; // not reachable until card flips
+  $btnMiss.style.pointerEvents  = "none";
 
   // Reset shadow
   $shadow.style.transform = "";
@@ -963,14 +965,6 @@ $stage.addEventListener("mousemove", e => {
   $shadow.style.transform = `translateX(${shx}px) translateY(${shy}px)`;
   $shadow.style.boxShadow = `0 ${28 + Math.abs(rx)}px ${50 + Math.abs(ry)}px rgba(0,0,0,0.22)`;
 
-  // Dynamic metallic sheen — sheen angle + specular spot follow cursor
-  const px = ((e.clientX - r.left) / r.width)  * 100;
-  const py = ((e.clientY - r.top)  / r.height) * 100;
-  const sheenAngle = Math.atan2(py - 50, px - 50) * (180 / Math.PI) + 135;
-  glossStyle.textContent = `
-    .card-face::before { background: linear-gradient(${sheenAngle}deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.06) 50%, rgba(0,0,0,0.03) 100%); }
-    .card-face::after  { background: radial-gradient(circle at ${px}% ${py}%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.08) 35%, transparent 60%); }
-  `;
 });
 
 $stage.addEventListener("mouseleave", () => {
@@ -998,9 +992,10 @@ $stage.addEventListener("click", () => {
     // The back face has scaleX(-1) pre-applied, so when the card (parent)
     // is at rotateY(180deg), the two mirror operations cancel and text reads normally.
     setTimeout(() => {
-      $frontFace.style.opacity  = "0";
-      $backFace.style.opacity   = "1";
-      $backActions.style.pointerEvents = "auto"; // allow button clicks
+      $frontFace.style.opacity     = "0";
+      $backFace.style.opacity      = "1";
+      $btnGot.style.pointerEvents  = "auto"; // allow button clicks after flip
+      $btnMiss.style.pointerEvents = "auto";
     }, 240);
   }
 });
