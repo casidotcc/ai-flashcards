@@ -152,10 +152,15 @@
   #stackCard2 {
     width: 90%;
     transform: translateX(-50%) translateY(20px);
+    opacity: 0.5;
+    /* blur(1px) adds depth by simulating focus falloff; remove filter lines if jank appears */
+    filter: blur(1px);
   }
   #stackCard3 {
     width: 80%;
     transform: translateX(-50%) translateY(40px);
+    opacity: 0.25;
+    filter: blur(2px);
   }
 
   .stage-wrap {
@@ -1156,31 +1161,43 @@ function showCard() {
   const total = state.pool.length;
   const done  = state.got.length;
 
-  // Reset stack card 2 to default position (active card loads on top, instant jump hidden)
-  $stackCard2.style.transition = "none";
-  $stackCard2.style.width      = "90%";
-  $stackCard2.style.transform  = "translateX(-50%) translateY(20px)";
+  // ── Atomic reset: all snaps in one batch, single reflow at the end ──────
+  // cardOuter first — it covers the full card area so anything reset behind
+  // it is invisible. Doing it first guarantees no paint can occur with the
+  // stack cards at a mid-animation position and cardOuter not yet visible.
 
-  // Reset card-outer position and opacity (after fly animation)
   $cardOuter.classList.remove("lifted");
   $cardOuter.style.transition = "none";
   $cardOuter.style.transform  = "";
   $cardOuter.style.opacity    = "1";
-  void $cardOuter.offsetWidth;
 
-  // Snap back to front face instantly (no transition)
+  // Snap card inner back to front face (no rotation)
   $card.style.transition = "none";
   $card.style.transform  = "";
   state.flipped          = false;
-  void $card.offsetWidth; // force reflow
 
   // Restore face visibility
-  $frontFace.style.opacity      = "1";
-  $backFace.style.opacity       = "0";
-  $btnGot.style.pointerEvents   = "none"; // not reachable until card fully flips
-  $btnMiss.style.pointerEvents  = "none";
-  $btnGot.style.opacity         = "1";   // reset; will dim to 0.3 mid-flip
-  $btnMiss.style.opacity        = "1";
+  $frontFace.style.opacity = "1";
+  $backFace.style.opacity  = "0";
+  $btnGot.style.pointerEvents  = "none";
+  $btnMiss.style.pointerEvents = "none";
+  $btnGot.style.opacity        = "1";
+  $btnMiss.style.opacity       = "1";
+
+  // Reset stack cards — now safely hidden behind cardOuter; clear all inline
+  // opacity/filter so CSS defaults (0.5/blur(1px) and 0.25/blur(2px)) take over
+  $stackCard2.style.transition = "none";
+  $stackCard2.style.width      = "90%";
+  $stackCard2.style.transform  = "translateX(-50%) translateY(20px)";
+  $stackCard2.style.opacity    = "";
+  $stackCard2.style.filter     = "";
+
+  $stackCard3.style.transition = "none";
+  $stackCard3.style.opacity    = "";
+  $stackCard3.style.filter     = "";
+
+  // Single reflow commits every reset above atomically before any paint
+  void $cardOuter.offsetWidth;
 
   $term.textContent = c.term;
   $term.className = "term" + (c.term.length > 16 ? " term-xs" : c.term.length > 10 ? " term-sm" : "");
@@ -1420,25 +1437,33 @@ function swipeCard(direction) {
   // position change with the transition setting and skipping the animation.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      $stackCard2.style.transition = "transform 0.35s ease, width 0.35s ease";
-      $stackCard3.style.transition = "transform 0.35s ease, width 0.35s ease";
+      const t = "transform 0.35s ease, width 0.35s ease, opacity 0.35s ease, filter 0.35s ease";
+      $stackCard2.style.transition = t;
+      $stackCard3.style.transition = t;
+      // stackCard2 advances to position 1: fully opaque, no blur
       $stackCard2.style.width      = "100%";
       $stackCard2.style.transform  = "translateX(-50%) translateY(0px)";
+      $stackCard2.style.opacity    = "1";
+      $stackCard2.style.filter     = "none";
+      // stackCard3 advances to position 2: takes on card-2's former opacity/blur
       $stackCard3.style.width      = "90%";
       $stackCard3.style.transform  = "translateX(-50%) translateY(20px)";
+      $stackCard3.style.opacity    = "0.5";
+      $stackCard3.style.filter     = "blur(1px)";
     });
   });
 
   // At 350ms (stack transition done): snap card 3 back to bottom slot and fade in.
-  // It's safely behind card 2 at this point so the snap isn't visible.
+  // stackCard2 is fully covering position 1, so the snap at position 3 is invisible.
   setTimeout(() => {
     $stackCard3.style.transition = "none";
     $stackCard3.style.opacity    = "0";
     $stackCard3.style.width      = "80%";
     $stackCard3.style.transform  = "translateX(-50%) translateY(40px)";
-    void $stackCard3.offsetWidth; // force reflow so opacity: 0 is applied before fade
+    $stackCard3.style.filter     = "";           // CSS blur(2px) takes effect instantly
+    void $stackCard3.offsetWidth;                // commit opacity:0 before fade
     $stackCard3.style.transition = "opacity 0.15s ease";
-    $stackCard3.style.opacity    = "1";
+    $stackCard3.style.opacity    = "0.25";       // fade in to CSS default
   }, 350);
 
   // At 500ms: advance state and show next card
