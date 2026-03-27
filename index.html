@@ -124,21 +124,6 @@
     cursor: pointer;
   }
 
-  /* ── Dynamic card stack behind main card ──────── */
-
-  /* Shadow lives outside the 3D context */
-  .card-shadow {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    top: 20px;
-    bottom: -20px;
-    border-radius: var(--radius);
-    background: transparent;
-    box-shadow: 0 28px 55px rgba(0,0,0,0.18);
-    pointer-events: none;
-    transition: box-shadow 0.18s, transform 0.05s;
-  }
 
   /* card-outer: perspective container + smooth hover scale */
   .card-outer {
@@ -218,17 +203,6 @@
     text-align: center;
     gap: 14px;
   }
-  .badge {
-    font-size: 12px;
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 999px;
-    background: #ebebeb;
-    color: #666;
-  }
-  .badge-ai, .badge-git, .badge-code, .badge-infra, .badge-cc { /* same style for all */ }
 
   .term {
     font-size: 24px;
@@ -546,19 +520,16 @@
 
 <!-- Card -->
 <div class="stage" id="stage" style="display:none">
-  <div class="card-shadow" id="cardShadow"></div>
   <div class="card-outer" id="cardOuter">
   <div class="card" id="card">
     <div class="card-face card-front">
       <div class="front-inner">
-        <span class="badge" id="frontBadge"></span>
         <div class="term" id="frontTerm"></div>
         <div class="hint">click to flip</div>
       </div>
     </div>
     <div class="card-face card-back">
       <div class="back-inner">
-        <span class="badge" id="backBadge"></span>
         <div class="full-name" id="backFullName"></div>
         <div class="definition" id="backDef"></div>
         <div class="example" id="backEx"></div>
@@ -632,10 +603,6 @@
 // ── Helpers ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "ai_flashcards_v5";
 
-function catClass(cat) {
-  return { "AI & Claude":"ai","Git & GitHub":"git","Code & Dev":"code",
-           "Infra & Process":"infra","Claude Code Commands":"cc" }[cat] || "ai";
-}
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length-1; i > 0; i--) {
@@ -673,13 +640,11 @@ const $landing     = document.getElementById("landing");
 const $stage       = document.getElementById("stage");
 const $cardOuter   = document.getElementById("cardOuter");
 const $card        = document.getElementById("card");
-const $shadow      = document.getElementById("cardShadow");
 const $frontFace   = $card.querySelector(".card-front");
 const $backFace    = $card.querySelector(".card-back");
 const $backActions = $card.querySelector(".back-actions");
 const $btnGot      = document.getElementById("btnGot");
 const $btnMiss     = document.getElementById("btnMiss");
-const $badge       = document.getElementById("frontBadge");
 const $term      = document.getElementById("frontTerm");
 const $full      = document.getElementById("backFullName");
 const $def       = document.getElementById("backDef");
@@ -694,7 +659,6 @@ const $dictSearch = document.getElementById("dictSearch");
 const $dictCount  = document.getElementById("dictCount");
 const $sortCat    = document.getElementById("sortCat");
 const $sortAZ     = document.getElementById("sortAZ");
-const $backBadge  = document.getElementById("backBadge");
 const $gotPile    = document.getElementById("gotPile");
 const $missPile   = document.getElementById("missPile");
 const $gotCount   = document.getElementById("gotCount");
@@ -742,15 +706,6 @@ function showCard() {
   $btnMiss.style.pointerEvents  = "none";
   $btnGot.style.opacity         = "1";   // reset; will dim to 0.3 mid-flip
   $btnMiss.style.opacity        = "1";
-
-  // Reset shadow
-  $shadow.style.transform = "";
-  $shadow.style.boxShadow = "0 28px 55px rgba(0,0,0,0.18)";
-
-  $badge.className = "badge badge-" + catClass(c.cat);
-  $badge.textContent = c.cat;
-  $backBadge.className = "badge badge-" + catClass(c.cat);
-  $backBadge.textContent = c.cat;
 
   $term.textContent = c.term;
   $term.className = "term" + (c.term.length > 16 ? " term-xs" : c.term.length > 10 ? " term-sm" : "");
@@ -931,16 +886,9 @@ $stage.addEventListener("mousemove", e => {
   $cardOuter.classList.add("lifted"); // scale(1.02) via CSS transition
 
   // Directional shadow
-  const shx = ry * 0.8;
-  const shy = -rx * 0.8 + 10;
-  $shadow.style.transform = `translateX(${shx}px) translateY(${shy}px)`;
-  $shadow.style.boxShadow = `0 ${28 + Math.abs(rx)}px ${50 + Math.abs(ry)}px rgba(0,0,0,0.22)`;
-
 });
 
 $stage.addEventListener("mouseleave", () => {
-  $shadow.style.transform = "";
-  $shadow.style.boxShadow = "0 28px 55px rgba(0,0,0,0.18)";
   glossStyle.textContent  = "";
   $cardOuter.classList.remove("lifted"); // scale smoothly back to 1
   if (state.flipped) return;
@@ -955,7 +903,6 @@ $stage.addEventListener("click", () => {
     // Smooth flip animation
     $card.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
     $card.style.transform  = "rotateY(180deg)";
-    $shadow.style.transform = "";
     glossStyle.textContent  = "";
     state.flipped = true;
 
