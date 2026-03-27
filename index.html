@@ -137,10 +137,8 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.07);
     transition: transform 0.35s ease, opacity 0.35s ease;
   }
-  .stack-card[data-pos="1"] { transform: translateY(10px) scale(0.96); opacity: 0.7; }
-  .stack-card[data-pos="2"] { transform: translateY(20px) scale(0.92); opacity: 0.5; }
-  .stack-card[data-pos="3"] { transform: translateY(30px) scale(0.88); opacity: 0.3; }
-  .stack-card[data-pos="4"] { transform: translateY(40px) scale(0.84); opacity: 0.15; }
+  .stack-card[data-pos="1"] { transform: translateY(10px) scale(0.90); opacity: 0.6; }
+  .stack-card[data-pos="2"] { transform: translateY(20px) scale(0.70); opacity: 0.35; }
 
   /* Shadow lives outside the 3D context */
   .card-shadow {
@@ -172,39 +170,48 @@
     border-radius: var(--radius);
   }
 
+  /* ── Metallic card surface ───────────────────────── */
   .card-face {
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
-    background: linear-gradient(160deg, #ffffff 0%, #f9f8fc 100%);
+    /* Cool brushed-aluminum gradient — light → bright → mid → slightly dark */
+    background: linear-gradient(155deg, #eef0f3 0%, #fafbfc 30%, #eceef1 62%, #e3e6e9 100%);
+    /* Bevel: bright top-left edge, subtle dark bottom-right edge */
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,0.92),
+      inset -1px -1px 0 rgba(0,0,0,0.09);
     pointer-events: none;
   }
   .card-back {
     transform: scaleX(-1);
     opacity: 0;
-    background: linear-gradient(160deg, #ffffff 0%, #f8faf9 100%);
+    background: linear-gradient(155deg, #eaecef 0%, #f7f8fa 30%, #e8eaed 62%, #e0e3e6 100%);
   }
 
+  /* Directional sheen — angle updated by JS on mousemove */
   .card-face::before {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
     background: linear-gradient(
-      140deg,
-      rgba(255,255,255,0.75) 0%,
-      rgba(255,255,255,0.1) 40%,
-      rgba(0,0,0,0.02) 100%
+      145deg,
+      rgba(255,255,255,0.62) 0%,
+      rgba(255,255,255,0.06) 48%,
+      rgba(0,0,0,0.03) 100%
     );
     pointer-events: none;
     z-index: 1;
+    transition: background 0.08s;
   }
+  /* Specular highlight spot — position updated by JS on mousemove */
   .card-face::after {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
-    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 65%);
+    background: radial-gradient(circle at 38% 32%, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.08) 38%, transparent 62%);
     pointer-events: none;
     z-index: 2;
     transition: background 0.05s;
@@ -480,6 +487,33 @@
     color: #aaa;
     font-size: 12px;
   }
+
+  /* ── Discard pile counters (fixed corners) ────────── */
+  .pile {
+    position: fixed;
+    bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 50;
+  }
+  .pile.visible { opacity: 1; }
+  .got-pile  { right: 28px; }
+  .miss-pile { left: 28px; }
+  .pile-badge {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.5;
+  }
+  .got-pile  .pile-badge { background: #dcfce7; color: #16a34a; }
+  .miss-pile .pile-badge { background: #fee2e2; color: #dc2626; }
 </style>
 </head>
 <body>
@@ -490,26 +524,24 @@
   <div class="landing-sub" id="landingSub"></div>
   <div class="landing-cards">
     <div class="mode-card" id="pickStudy">
+      <!-- Converging horizontal lines — suggests stacking / focus / progression -->
       <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <polygon points="24,6 42,16 42,32 24,42 6,32 6,16" stroke="#888" stroke-width="1.5"/>
-        <line x1="24" y1="6" x2="24" y2="42" stroke="#888" stroke-width="1.5"/>
-        <line x1="6" y1="16" x2="42" y2="16" stroke="#888" stroke-width="1.5"/>
-        <line x1="6" y1="32" x2="42" y2="32" stroke="#888" stroke-width="1.5"/>
+        <line x1="6"  y1="13" x2="42" y2="13" stroke="#888" stroke-width="2" stroke-linecap="round"/>
+        <line x1="10" y1="21" x2="38" y2="21" stroke="#888" stroke-width="2" stroke-linecap="round"/>
+        <line x1="15" y1="29" x2="33" y2="29" stroke="#888" stroke-width="2" stroke-linecap="round"/>
+        <line x1="20" y1="37" x2="28" y2="37" stroke="#888" stroke-width="2" stroke-linecap="round"/>
       </svg>
       <div class="mode-name">Study</div>
       <div class="mode-desc">Flip through cards, mark what you know.</div>
     </div>
     <div class="mode-card" id="pickBrowse">
+      <!-- Magnifier outline — suggests scanning / exploring -->
       <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <rect x="17" y="8" width="22" height="28" rx="2" stroke="#888" stroke-width="1.5" fill="#f0f0f0"/>
-        <rect x="12" y="12" width="22" height="28" rx="2" stroke="#888" stroke-width="1.5" fill="#f0f0f0"/>
-        <rect x="7" y="16" width="22" height="28" rx="2" stroke="#888" stroke-width="1.5" fill="#f0f0f0"/>
-        <line x1="12" y1="23" x2="24" y2="23" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="12" y1="27" x2="24" y2="27" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="12" y1="31" x2="20" y2="31" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="20" cy="20" r="13" stroke="#888" stroke-width="2"/>
+        <line x1="30" y1="30" x2="42" y2="42" stroke="#888" stroke-width="2" stroke-linecap="round"/>
       </svg>
       <div class="mode-name">Browse</div>
-      <div class="mode-desc">Search and read all 78 terms.</div>
+      <div class="mode-desc">Search and read all terms.</div>
     </div>
   </div>
 </div>
@@ -541,12 +573,13 @@
     </div>
     <div class="card-face card-back">
       <div class="back-inner">
+        <span class="badge" id="backBadge"></span>
         <div class="full-name" id="backFullName"></div>
         <div class="definition" id="backDef"></div>
         <div class="example" id="backEx"></div>
         <div class="back-actions">
-          <button class="btn-got"  id="btnGot">&#10003; Got it</button>
           <button class="btn-miss" id="btnMiss">&#10007; Still learning</button>
+          <button class="btn-got"  id="btnGot">&#10003; Got it</button>
         </div>
       </div>
     </div>
@@ -591,6 +624,22 @@
   <div id="dictList" class="dict-list"></div>
 </div>
 
+<!-- Discard pile counters (fixed corners, shown during card game) -->
+<div class="pile miss-pile" id="missPile">
+  <svg width="30" height="22" viewBox="0 0 30 22" fill="none" aria-hidden="true">
+    <rect x="8" y="0" width="20" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5"/>
+    <rect x="2" y="5" width="20" height="14" rx="2" stroke="#fca5a5" stroke-width="1.5" fill="#fee2e2"/>
+  </svg>
+  <span class="pile-badge" id="missCount">0</span>
+</div>
+<div class="pile got-pile" id="gotPile">
+  <svg width="30" height="22" viewBox="0 0 30 22" fill="none" aria-hidden="true">
+    <rect x="8" y="0" width="20" height="14" rx="2" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="2" y="5" width="20" height="14" rx="2" stroke="#86efac" stroke-width="1.5" fill="#dcfce7"/>
+  </svg>
+  <span class="pile-badge" id="gotCount">0</span>
+</div>
+
 <script src="cards.js"></script>
 <script>
 
@@ -630,6 +679,8 @@ function buildDeck(retryMissed) {
   state.got     = [];
   state.miss    = [];
   state.flipped = false;
+  $gotCount.textContent  = "0";
+  $missCount.textContent = "0";
 }
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
@@ -658,6 +709,11 @@ const $dictSearch = document.getElementById("dictSearch");
 const $dictCount  = document.getElementById("dictCount");
 const $sortCat    = document.getElementById("sortCat");
 const $sortAZ     = document.getElementById("sortAZ");
+const $backBadge  = document.getElementById("backBadge");
+const $gotPile    = document.getElementById("gotPile");
+const $missPile   = document.getElementById("missPile");
+const $gotCount   = document.getElementById("gotCount");
+const $missCount  = document.getElementById("missCount");
 
 // ── Show landing ───────────────────────────────────────────────────────────
 function showLanding() {
@@ -668,13 +724,15 @@ function showLanding() {
   $pgWrap.style.display  = "none";
   $results.style.display = "none";
   $dict.style.display    = "none";
+  $gotPile.classList.remove("visible");
+  $missPile.classList.remove("visible");
 }
 
 // ── Card stack ─────────────────────────────────────────────────────────────
 function updateStack() {
   const remaining = state.deck.length - state.index - 1;
   $stackCards.innerHTML = "";
-  const count = Math.min(remaining, 4);
+  const count = Math.min(remaining, 2);
   for (let i = count; i >= 1; i--) {
     const el = document.createElement("div");
     el.className = "stack-card";
@@ -692,10 +750,11 @@ function showCard() {
   const total = state.deck.length;
   const done  = state.got.length + state.miss.length;
 
-  // Reset card-outer position (after swipe animation)
+  // Reset card-outer position and opacity (after fly animation)
   $cardOuter.classList.remove("lifted");
   $cardOuter.style.transition = "none";
   $cardOuter.style.transform  = "";
+  $cardOuter.style.opacity    = "1";
   void $cardOuter.offsetWidth;
 
   // Snap back to front face instantly (no transition)
@@ -715,6 +774,8 @@ function showCard() {
 
   $badge.className = "badge badge-" + catClass(c.cat);
   $badge.textContent = c.cat;
+  $backBadge.className = "badge badge-" + catClass(c.cat);
+  $backBadge.textContent = c.cat;
 
   $term.textContent = c.term;
   $term.className = "term" + (c.term.length > 16 ? " term-xs" : c.term.length > 10 ? " term-sm" : "");
@@ -736,6 +797,8 @@ function showCard() {
   $dict.style.display    = "none";
 
   updateStack();
+  $gotPile.classList.add("visible");
+  $missPile.classList.add("visible");
   save();
 }
 
@@ -777,6 +840,8 @@ function showResults() {
   });
 
   document.getElementById("btnRetry").disabled = state.miss.length === 0;
+  $gotPile.classList.remove("visible");
+  $missPile.classList.remove("visible");
   save();
 }
 
@@ -853,6 +918,8 @@ function showDict() {
   $pgWrap.style.display  = "none";
   $results.style.display = "none";
   $dict.style.display    = "flex";
+  $gotPile.classList.remove("visible");
+  $missPile.classList.remove("visible");
 
   renderDict();
 }
@@ -896,10 +963,14 @@ $stage.addEventListener("mousemove", e => {
   $shadow.style.transform = `translateX(${shx}px) translateY(${shy}px)`;
   $shadow.style.boxShadow = `0 ${28 + Math.abs(rx)}px ${50 + Math.abs(ry)}px rgba(0,0,0,0.22)`;
 
-  // Moving gloss
+  // Dynamic metallic sheen — sheen angle + specular spot follow cursor
   const px = ((e.clientX - r.left) / r.width)  * 100;
   const py = ((e.clientY - r.top)  / r.height) * 100;
-  glossStyle.textContent = `.card-face::after { background: radial-gradient(circle at ${px}% ${py}%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.06) 40%, transparent 65%); }`;
+  const sheenAngle = Math.atan2(py - 50, px - 50) * (180 / Math.PI) + 135;
+  glossStyle.textContent = `
+    .card-face::before { background: linear-gradient(${sheenAngle}deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.06) 50%, rgba(0,0,0,0.03) 100%); }
+    .card-face::after  { background: radial-gradient(circle at ${px}% ${py}%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.08) 35%, transparent 60%); }
+  `;
 });
 
 $stage.addEventListener("mouseleave", () => {
@@ -934,21 +1005,24 @@ $stage.addEventListener("click", () => {
   }
 });
 
-// ── Card swipe animation ───────────────────────────────────────────────────
+// ── Card fly-to-corner animation ──────────────────────────────────────────
 function swipeCard(direction) {
-  const tx  = direction === "got" ? "120%" : "-120%";
-  const rot = direction === "got" ? "8deg" : "-8deg";
-  $cardOuter.style.transition = "transform 0.35s ease-in";
-  $cardOuter.style.transform  = `translateX(${tx}) rotate(${rot})`;
+  const tx  = direction === "got" ? "60vw"  : "-60vw";
+  const rot = direction === "got" ? "15deg" : "-15deg";
+  $cardOuter.style.transition = "transform 0.5s cubic-bezier(0.4,0,1,1), opacity 0.4s ease-in 0.1s";
+  $cardOuter.style.transform  = `translateX(${tx}) translateY(60vh) scale(0.08) rotate(${rot})`;
+  $cardOuter.style.opacity    = "0";
   setTimeout(() => {
     if (direction === "got") {
       state.got.push(state.deck[state.index]);
+      $gotCount.textContent = state.got.length;
     } else {
       state.miss.push(state.deck[state.index]);
+      $missCount.textContent = state.miss.length;
     }
     state.index++;
     showCard();
-  }, 350);
+  }, 500);
 }
 
 // ── Answer buttons ─────────────────────────────────────────────────────────
