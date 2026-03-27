@@ -203,12 +203,14 @@
     border-radius: var(--radius);
     pointer-events: none;
   }
-  /* Front: dark near-black with subtle metallic sheen */
+  /* Front: solid near-black with inset bevel. background-color transitions
+     from #D0D0D0 (advancing stack card color) to #1a1a1a on card activation. */
   .card-front {
-    background: linear-gradient(155deg, #242424 0%, #1e1e1e 40%, #1a1a1a 70%, #161616 100%);
+    background-color: #1a1a1a;
     box-shadow:
       inset 1px 1px 0 rgba(255,255,255,0.08),
       inset -1px -1px 0 rgba(0,0,0,0.3);
+    transition: background-color 0.35s ease;
   }
   /* Back: light metallic as before */
   .card-back {
@@ -266,6 +268,7 @@
     letter-spacing: -0.3px;
     line-height: 1.1;
     color: #ffffff;
+    transition: color 0.35s ease;
   }
   .term.term-sm { font-size: 24px; }
   .term.term-xs { font-size: 24px; }
@@ -273,6 +276,7 @@
   .hint {
     font-size: 12px;
     color: #888;
+    transition: color 0.35s ease;
   }
 
   /* Back */
@@ -574,11 +578,24 @@
   }
   .flyout-empty { color: var(--text-muted); }
 
+  /* ── Stage column: label + card stacked vertically ─── */
+  .stage-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-prompt {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
   /* ── Mobile padding ──────────────────────────── */
   @media (max-width: 480px) {
     #landing       { padding: 0 16px 80px; }
     .progress-wrap { padding: 28px 16px 0; }
     .stage-wrap    { padding: 0 16px 60px; }
+    .stage-column  { width: 100%; }
     .stage         { width: 100%; }
     #results       { padding: 0 16px 60px; }
     #dictionary    { padding: 60px 16px 60px; }
@@ -617,6 +634,8 @@
 
 <!-- Card -->
 <div class="stage-wrap" id="stageWrap" style="display:none">
+<div class="stage-column">
+<div class="card-prompt">What is that?</div>
 <div class="stage" id="stage">
   <div class="stack-card" id="stackCard3"></div>
   <div class="stack-card" id="stackCard2"></div>
@@ -642,6 +661,7 @@
   </div>
   </div><!-- /card-outer -->
 </div>
+</div><!-- /stage-column -->
 </div><!-- /stageWrap -->
 
 <!-- Results -->
@@ -1063,6 +1083,7 @@ function shuffle(arr) {
 
 // ── State ──────────────────────────────────────────────────────────────────
 let state = { deck:[], pool:[], index:0, got:[], miss:[], flipped:false };
+let pendingActivate = false; // set by swipeCard(), consumed by showCard()
 
 function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(_) {} }
 function load() {
@@ -1099,6 +1120,7 @@ const $cardOuter   = document.getElementById("cardOuter");
 const $card        = document.getElementById("card");
 const $frontFace   = $card.querySelector(".card-front");
 const $backFace    = $card.querySelector(".card-back");
+const $hint        = $card.querySelector(".hint");
 const $backActions = $card.querySelector(".back-actions");
 const $btnGot      = document.getElementById("btnGot");
 const $btnMiss     = document.getElementById("btnMiss");
@@ -1160,32 +1182,28 @@ function showCard() {
   const total = state.pool.length;
   const done  = state.got.length;
 
-  // ── Atomic reset: all snaps in one batch, single reflow at the end ──────
-  // cardOuter first — it covers the full card area so anything reset behind
-  // it is invisible. Doing it first guarantees no paint can occur with the
-  // stack cards at a mid-animation position and cardOuter not yet visible.
+  // ── All snaps in one batch — single reflow at the end commits them atomically
 
+  // cardOuter first: covers full card area, hiding all resets behind it
   $cardOuter.classList.remove("lifted");
   $cardOuter.style.transition = "none";
   $cardOuter.style.transform  = "";
   $cardOuter.style.opacity    = "1";
 
-  // Snap card inner back to front face (no rotation)
+  // Snap card inner to front face
   $card.style.transition = "none";
   $card.style.transform  = "";
   state.flipped          = false;
 
-  // Restore face visibility
-  $frontFace.style.opacity = "1";
-  $backFace.style.opacity  = "0";
+  // Face visibility
+  $frontFace.style.opacity     = "1";
+  $backFace.style.opacity      = "0";
   $btnGot.style.pointerEvents  = "none";
   $btnMiss.style.pointerEvents = "none";
   $btnGot.style.opacity        = "1";
   $btnMiss.style.opacity       = "1";
 
-  // Reset both stack cards — safely hidden behind cardOuter at this point.
-  // stackCard3 must also be explicitly reset here because after each advance
-  // it ends up at position 2 (90%/20px) and stays there until reset.
+  // Reset both stack cards (stackCard3 ends up at pos 2 after each advance)
   $stackCard2.style.transition = "none";
   $stackCard2.style.width      = "90%";
   $stackCard2.style.transform  = "translateX(-50%) translateY(20px)";
@@ -1193,15 +1211,26 @@ function showCard() {
   $stackCard3.style.width      = "80%";
   $stackCard3.style.transform  = "translateX(-50%) translateY(40px)";
 
-  // Single reflow commits every reset above atomically before any paint
-  void $cardOuter.offsetWidth;
-
-  $term.textContent = c.term;
-  $term.className = "term" + (c.term.length > 16 ? " term-xs" : c.term.length > 10 ? " term-sm" : "");
-
+  // Card content (set before reflow so it's committed with the rest)
+  $term.textContent = `\u201C${c.term}\u201D`;
+  $term.className   = "term" + (c.term.length > 16 ? " term-xs" : c.term.length > 10 ? " term-sm" : "");
   $full.textContent = c.full.toUpperCase();
   $def.textContent  = c.def;
   $ex.textContent   = "e.g. " + c.ex;
+
+  // Activation start state: set front to stack-card gray with dark text,
+  // so the transition to near-black + white text is visible when it fires.
+  if (pendingActivate) {
+    $frontFace.style.transition      = "none";
+    $frontFace.style.backgroundColor = "#D0D0D0";
+    $term.style.transition           = "none";
+    $term.style.color                = "#1a1a1a";
+    $hint.style.transition           = "none";
+    $hint.style.color                = "#555";
+  }
+
+  // Single reflow — commits every assignment above before any paint
+  void $cardOuter.offsetWidth;
 
   const pct = total > 0 ? (done/total)*100 : 0;
   $fill.style.width      = pct + "%";
@@ -1213,9 +1242,25 @@ function showCard() {
   $pgWrap.style.display     = "";
   $results.style.display    = "none";
   $dict.style.display       = "none";
-
   $gotPile.classList.add("visible");
   $missPile.classList.add("visible");
+
+  // Activation transition: clear inline overrides so CSS defaults take over.
+  // The browser sees the committed start state (#D0D0D0 / dark text) and
+  // animates to the CSS targets (#1a1a1a / white) via the transitions defined
+  // on .card-front, .term, and .hint.
+  if (pendingActivate) {
+    pendingActivate = false;
+    requestAnimationFrame(() => {
+      $frontFace.style.transition      = ""; // CSS: background-color 0.35s ease
+      $frontFace.style.backgroundColor = ""; // CSS target: #1a1a1a
+      $term.style.transition           = ""; // CSS: color 0.35s ease
+      $term.style.color                = ""; // CSS target: #ffffff
+      $hint.style.transition           = ""; // CSS: color 0.35s ease
+      $hint.style.color                = ""; // CSS target: #888
+    });
+  }
+
   renderFlyouts();
   save();
 }
@@ -1423,6 +1468,8 @@ $stage.addEventListener("click", () => {
 function swipeCard(direction) {
   const tx  = direction === "got" ? "60vw"  : "-60vw";
   const rot = direction === "got" ? "15deg" : "-15deg";
+
+  pendingActivate = true; // showCard() will run the activation animation
 
   // Step 1: Fly active card out.
   $cardOuter.style.transition = "transform 0.5s cubic-bezier(0.4,0,1,1), opacity 0.4s ease-in 0.1s";
